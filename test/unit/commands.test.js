@@ -209,3 +209,44 @@ test('comando desconhecido e nomes como __proto__', async () => {
     assert.equal(r.exception.message, `O Jamegão não atende o comando "${c}".`);
   }
 });
+
+test('três assinaturas simultâneas com 1 crédito: só uma assina', async () => {
+  await setup();
+  await sites.setAllowed(O, true);
+  await credits.grant(O, T, 1);
+  const req = { certificateThumbprint: T, data: 'eA==' };
+  const rs = await Promise.all([run('signData', req), run('signData', req), run('signData', req)]);
+  assert.equal(rs.filter((r) => r.success === true).length, 1);
+  for (const r of rs.filter((r) => r.success !== true)) {
+    assert.deepEqual(r, { needs: { sign: { count: 1, thumbprint: T } } });
+  }
+});
+
+test('erro interno não vaza o texto para a página', async () => {
+  await setup();
+  await sites.setAllowed(O, true);
+  const boom = createCommands({
+    vault, sites, credits, platformOs: 'Linux',
+    certs: { get: async () => { throw new Error('segredo /home/x stack'); } },
+  });
+  const r = await boom.handle({ command: 'readCertificate', request: { certificateThumbprint: T } }, O);
+  assert.equal(r.success, false);
+  assert.equal(r.exception.code, 'undefined');
+  assert.equal(r.exception.message, 'Erro interno do Jamegão.');
+  assert.ok(!JSON.stringify(r).includes('segredo'));
+});
+
+test('cofre trava entre a conferência e a decifragem: pede senha', async () => {
+  await setup();
+  await sites.setAllowed(O, true);
+  await credits.grant(O, T, 1);
+  let n = 0;
+  const racing = {
+    ...vault,
+    isUnlocked: async () => (n++ === 0 ? true : false),
+    decrypt: async () => { throw new Error('travado'); },
+  };
+  const c = createCommands({ vault: racing, certs, sites, credits, platformOs: 'Linux' });
+  const r = await c.handle({ command: 'signData', request: { certificateThumbprint: T, data: 'eA==' } }, O);
+  assert.deepEqual(r, { needs: { unlock: true, sign: { count: 1, thumbprint: T } } });
+});
