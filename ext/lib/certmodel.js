@@ -57,7 +57,7 @@ const readOtherNames = (forge, cert) => {
 
 // Campo "dados do titular/responsável" da ICP-Brasil:
 // nascimento (8, DDMMAAAA) + CPF (11) + NIS (11) + RG (15) + órgão/UF.
-const parseDadosPessoa = (raw) => {
+export const parseDadosPessoa = (raw) => {
   if (!raw || raw.length < 19) return {};
   const nasc = raw.slice(0, 8);
   const cpf = onlyDigits(raw.slice(8, 19));
@@ -73,9 +73,11 @@ const parseDadosPessoa = (raw) => {
   if (rg) out.rgNumero = rg;
   if (emissor) {
     // A UF só é separada quando as duas últimas letras são uma UF de verdade
-    // e sobra órgão emissor antes delas ("SSPSP", "SSP/SP", "SSP SP").
-    const m = emissor.match(/^(.*?)[\s/-]*([A-Za-z]{2})$/);
-    const uf = m && m[1].trim() && UFS.has(m[2].toUpperCase()) ? m[2].toUpperCase() : null;
+    // e sobra órgão emissor antes delas: com separador ("SSP/SP", "SSP SP")
+    // basta haver órgão; colada ("SSPSP") o órgão precisa ter 2+ caracteres,
+    // para "SSP" e "SES" não virarem "S"/"SP" e "S"/"ES".
+    const m = emissor.match(/^(.*?)([\s/-]*)([A-Za-z]{2})$/);
+    const uf = m && m[1].trim() && (m[2] || m[1].length >= 2) && UFS.has(m[3].toUpperCase()) ? m[3].toUpperCase() : null;
     out.rgEmissor = (uf ? m[1] : emissor).trim() || null;
     out.rgEmissorUF = uf;
   }
