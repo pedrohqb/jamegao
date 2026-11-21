@@ -1,0 +1,39 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="utf-8">
+  <title>Importar certificado - Jamegão</title>
+  <link rel="stylesheet" href="ui.css">
+</head>
+<body>
+  <h1>Importar certificado</h1>
+  <p class="aviso">
+    A chave do certificado fica guardada, cifrada, neste perfil do navegador e protegida pela senha do cofre.
+    Nada sai do seu computador. A cópia de segurança é o próprio arquivo PFX: guarde-o.
+  </p>
+
+  <div id="area">
+    <label for="arquivo">Arquivo do certificado (PFX ou P12), ou arraste-o para cá</label>
+    <input type="file" id="arquivo" accept=".pfx,.p12">
+  </div>
+
+  <label for="senha-pfx">Senha do arquivo PFX</label>
+  <input type="password" id="senha-pfx" autocomplete="off">
+
+  <div id="bloco-cofre">
+    <label for="senha-cofre" id="rotulo-cofre">Senha do cofre</label>
+    <input type="password" id="senha-cofre" autocomplete="off">
+    <label for="senha-cofre-2" id="rotulo-cofre-2">Repita a senha do cofre (mínimo de 8 caracteres)</label>
+    <input type="password" id="senha-cofre-2" autocomplete="off">
+  </div>
+
+  <button id="importar" type="button">Importar</button>
+  <div id="status" role="status"></div>
+
+  <h2>Certificados importados</h2>
+  <ul id="certs"></ul>
+
+  <script src="../vendor/forge.min.js"></script>
+  <script type="module" src="import.js"></script>
+</body>
+</html>
