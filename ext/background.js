@@ -71,3 +71,8 @@ api.runtime.onMessage.addListener((msg, sender, sendResponse) => {
   dispatch(msg, sender).then(sendResponse);
   return true;
 });
+
+// Primeira execução: abre a página de importação do certificado.
+api.runtime.onInstalled.addListener((details) => {
+  if (details.reason === 'install') api.tabs.create({ url: api.runtime.getURL('pages/import.html') });
+});

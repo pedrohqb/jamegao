@@ -43,7 +43,7 @@ const startServer = async () => {
   return server;
 };
 
-export async function launch(name = 'chrome') {
+export async function launch(name = 'chrome', { userDataDir } = {}) {
   if (name === 'firefox') throw new Error('Firefox não disponível neste ambiente');
   if (name !== 'chrome') throw new Error('Navegador desconhecido: ' + name);
 
@@ -53,6 +53,7 @@ export async function launch(name = 'chrome') {
   const browser = await puppeteer.launch({
     executablePath: process.env.CHROME || '/usr/bin/google-chrome',
     headless: true,
+    ...(userDataDir ? { userDataDir } : {}),
     args: ['--no-sandbox', `--disable-extensions-except=${extDir}`, `--load-extension=${extDir}`],
   });
   try {
@@ -62,6 +63,17 @@ export async function launch(name = 'chrome') {
     );
     const extId = new URL(sw.url()).host;
     const extUrl = (p) => `chrome-extension://${extId}/${String(p).replace(/^\//, '')}`;
+
+    // onInstalled abre pages/import.html; as páginas de teste não querem essa aba extra.
+    try {
+      const t = await browser.waitForTarget(
+        (x) => x.type() === 'page' && x.url().startsWith(extUrl('')) && x.url().includes('import.html'),
+        { timeout: 4000 },
+      );
+      await (await t.page()).close();
+    } catch {
+      // perfil já instalado: não há aba de primeira execução
+    }
 
     const waitForExtPage = async (fragment, timeoutMs = 15000) => {
       const target = await browser.waitForTarget(
