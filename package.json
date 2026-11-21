@@ -1,0 +1,17 @@
+{
+  "name": "jamegao",
+  "version": "0.1.0",
+  "private": true,
+  "license": "GPL-3.0-or-later",
+  "type": "module",
+  "scripts": {
+    "unit": "node --test \"test/unit/**/*.test.js\"",
+    "e2e": "node --test \"test/e2e/**/*.test.mjs\"",
+    "preparar": "sh scripts/preparar.sh"
+  },
+  "devDependencies": {
+    "fake-indexeddb": "*",
+    "node-forge": "1.4.3",
+    "puppeteer-core": "^25.18.1"
+  }
+}

@@ -1,0 +1,33 @@
+<!doctype html>
+<html>
+<head><meta charset="utf-8"><title>teste</title></head>
+<body>
+<script>
+  const lib = new URLSearchParams(location.search).get('lib');
+  document.write('<script src="/' + lib + '"><\/script>');
+</script>
+<script>
+  // Mesmo estilo de uso do e-SAJ: init, listCertificates, readCertificate,
+  // preauthorizeSignatures, signData e signHash.
+  const p = (task) => new Promise((resolve, reject) =>
+    task.success(resolve).error((message, error, origin) => reject(new Error(typeof message === 'string' ? message : JSON.stringify(message)))));
+  window.pki = new LacunaWebPKI();
+  window.initPki = () => new Promise((resolve) => {
+    pki.init({
+      ready: () => resolve({ ready: true }),
+      notInstalled: (status, message) => resolve({ ready: false, status, message }),
+      defaultError: (message) => resolve({ ready: false, error: String(message) }),
+    });
+  });
+  window.listar = async () => (await p(pki.listCertificates())).map((c) => ({
+    ...c, validityStart: c.validityStart.toISOString(), validityEnd: c.validityEnd.toISOString(),
+    pkiBrazil: c.pkiBrazil ? { ...c.pkiBrazil, dateOfBirth: c.pkiBrazil.dateOfBirth ? c.pkiBrazil.dateOfBirth.toISOString() : null } : null,
+  }));
+  window.ler = (thumbprint) => p(pki.readCertificate(thumbprint));
+  window.preautorizar = (thumbprint, n) => p(pki.preauthorizeSignatures({ certificateThumbprint: thumbprint, signatureCount: n }));
+  window.assinarDados = (thumbprint, data, digestAlgorithm) => p(pki.signData({ thumbprint, data, digestAlgorithm }));
+  window.assinarHash = (thumbprint, hash, digestAlgorithm) => p(pki.signHash({ thumbprint, hash, digestAlgorithm }));
+  window.assinarPdf = (thumbprint) => p(pki.signPdf({ fileId: 'x', certificateThumbprint: thumbprint, output: { mode: 'showSaveFileDialog' } }));
+</script>
+</body>
+</html>

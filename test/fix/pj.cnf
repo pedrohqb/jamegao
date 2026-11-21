@@ -1,0 +1,18 @@
+[req]
+distinguished_name=dn
+prompt=no
+x509_extensions=v3
+utf8=yes
+string_mask=utf8only
+[dn]
+C=BR
+O=ICP-Brasil TESTE
+CN=EMPRESA: TESTE LTDA:12ABC34501DE35
+[v3]
+keyUsage=critical,digitalSignature,nonRepudiation,keyEncipherment
+certificatePolicies=2.16.76.1.2.1.999
+subjectAltName=@san
+[san]
+otherName.1=2.16.76.1.3.4;FORMAT:ASCII,OCTETSTRING:150219759876543210000000000000000000000987654DETRAN
+otherName.2=2.16.76.1.3.2;FORMAT:UTF8,UTF8String:JOSÉ DA CONCEIÇÃO
+otherName.3=2.16.76.1.3.3;FORMAT:ASCII,OCTETSTRING:12ABC34501DE35

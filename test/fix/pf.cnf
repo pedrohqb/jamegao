@@ -1,0 +1,17 @@
+[req]
+distinguished_name=dn
+prompt=no
+x509_extensions=v3
+[dn]
+C=BR
+O=ICP-Brasil TESTE
+CN=FULANO DE TAL TESTE:12345678909
+[v3]
+keyUsage=critical,digitalSignature,nonRepudiation,keyEncipherment
+extendedKeyUsage=clientAuth,emailProtection
+certificatePolicies=2.16.76.1.2.1.999
+subjectAltName=@san
+[san]
+email=fulano@example.com
+otherName.1=2.16.76.1.3.1;PRINTABLESTRING:010119801234567890900000000000000000000123456SSPSP
+otherName.2=2.16.76.1.4.2.1.1;PRINTABLESTRING:0344323SP

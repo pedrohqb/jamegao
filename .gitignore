@@ -1,0 +1,5 @@
+node_modules/
+.superpowers/
+dist/
+test/www/lacuna-*.js
+test/www/softplan-*.js
