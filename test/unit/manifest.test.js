@@ -21,3 +21,9 @@ test('valores fixos', () => {
   assert.deepEqual(m.background, { service_worker: 'background.js', scripts: ['background.js'], type: 'module' });
   assert.equal(m.browser_specific_settings.gecko.strict_min_version, '128.0');
 });
+
+test('vendor/forge.min.js é o do node-forge instalado', async () => {
+  const { createHash } = await import('node:crypto');
+  const sha = (p) => createHash('sha256').update(fs.readFileSync(new URL(p, import.meta.url))).digest('hex');
+  assert.equal(sha('../../ext/vendor/forge.min.js'), sha('../../node_modules/node-forge/dist/forge.min.js'));
+});
