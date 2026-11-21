@@ -53,7 +53,27 @@ async function open(key, { iv, data }) {
   return new Uint8Array(await subtle().decrypt({ name: 'AES-GCM', iv: unb64(iv) }, key, unb64(data)));
 }
 
-export function createVault({ local, session, now, iterations = PBKDF2_ITERATIONS }) {
+const MIN_STORED_ITER = 100000;
+const MAX_STORED_ITER = 10000000;
+
+export function createVault({ local, session, now, iterations }) {
+  // iterations explícito (só testes) relaxa a validação do valor gravado.
+  const explicitIter = iterations !== undefined;
+  const iter = iterations ?? PBKDF2_ITERATIONS;
+
+  // Serializa create/unlock: por instância (fila de promises) e, quando há
+  // Web Locks, também entre páginas e fundo.
+  let queue = Promise.resolve();
+  function exclusive(fn) {
+    const run = queue.then(() =>
+      globalThis.navigator?.locks?.request
+        ? globalThis.navigator.locks.request('jamegao-cofre', fn)
+        : fn(),
+    );
+    queue = run.catch(() => {});
+    return run;
+  }
+
   async function setUnlocked(raw) {
     await session.set('vaultKey', b64(raw));
     await session.set('lastUse', now());
@@ -61,7 +81,9 @@ export function createVault({ local, session, now, iterations = PBKDF2_ITERATION
 
   async function currentKey() {
     if (!(await isUnlocked())) throw new Error('travado');
-    return importAes(unb64(await session.get('vaultKey')));
+    const k = await session.get('vaultKey');
+    if (!k) throw new Error('travado');
+    return importAes(unb64(k));
   }
 
   async function lock() {
@@ -88,40 +110,50 @@ export function createVault({ local, session, now, iterations = PBKDF2_ITERATION
       return (await local.get('vaultMeta')) !== undefined;
     },
 
-    async create(password) {
-      if (typeof password !== 'string' || password.length < MIN_PASSWORD) throw new Error('senha-curta');
-      if ((await local.get('vaultMeta')) !== undefined) throw new Error('ja-existe');
-      const salt = globalThis.crypto.getRandomValues(new Uint8Array(16));
-      const raw = await deriveRaw(password, salt, iterations);
-      const check = await seal(await importAes(raw), enc.encode(CHECK_PLAIN));
-      await local.set('vaultMeta', { salt: b64(salt), iterations, check });
-      await local.remove('lockout');
-      await setUnlocked(raw);
-    },
-
-    async unlock(password) {
-      const meta = await local.get('vaultMeta');
-      if (!meta) throw new Error('sem-cofre');
-      const lockout = await local.get('lockout', { failures: 0, until: 0 });
-      const remaining = lockout.until - now();
-      if (remaining > 0) return { ok: false, waitMs: remaining };
-      let raw = null;
-      try {
-        raw = await deriveRaw(String(password ?? ''), unb64(meta.salt), meta.iterations);
-        const plain = await open(await importAes(raw), meta.check);
-        if (new TextDecoder().decode(plain) !== CHECK_PLAIN) raw = null;
-      } catch {
-        raw = null;
-      }
-      if (raw) {
+    create(password) {
+      return exclusive(async () => {
+        if (typeof password !== 'string') throw new Error('senha-curta');
+        const pw = password.normalize('NFC');
+        if (pw.length < MIN_PASSWORD) throw new Error('senha-curta');
+        if ((await local.get('vaultMeta')) !== undefined) throw new Error('ja-existe');
+        const salt = globalThis.crypto.getRandomValues(new Uint8Array(16));
+        const raw = await deriveRaw(pw, salt, iter);
+        const check = await seal(await importAes(raw), enc.encode(CHECK_PLAIN));
+        await local.set('vaultMeta', { salt: b64(salt), iterations: iter, check });
         await local.remove('lockout');
         await setUnlocked(raw);
-        return { ok: true };
-      }
-      const failures = lockout.failures + 1;
-      const waitMs = BACKOFF_S[Math.min(failures - 1, BACKOFF_S.length - 1)] * 1000;
-      await local.set('lockout', { failures, until: now() + waitMs });
-      return { ok: false, waitMs };
+      });
+    },
+
+    unlock(password) {
+      return exclusive(async () => {
+        const meta = await local.get('vaultMeta');
+        if (!meta) throw new Error('sem-cofre');
+        const it = meta.iterations;
+        const okIter = Number.isInteger(it) && (explicitIter ? it > 0 : it >= MIN_STORED_ITER && it <= MAX_STORED_ITER);
+        if (!okIter) throw new Error('cofre-corrompido');
+        const lockout = await local.get('lockout', { failures: 0, until: 0 });
+        const remaining = lockout.until - now();
+        if (remaining > 0) return { ok: false, waitMs: remaining };
+        const pw = String(password ?? '').normalize('NFC');
+        const raw = await deriveRaw(pw, unb64(meta.salt), it);
+        let good = false;
+        try {
+          const plain = await open(await importAes(raw), meta.check);
+          good = new TextDecoder().decode(plain) === CHECK_PLAIN;
+        } catch (e) {
+          if (e?.name !== 'OperationError') throw e;
+        }
+        if (good) {
+          await local.remove('lockout');
+          await setUnlocked(raw);
+          return { ok: true };
+        }
+        const failures = lockout.failures + 1;
+        const waitMs = BACKOFF_S[Math.min(failures - 1, BACKOFF_S.length - 1)] * 1000;
+        await local.set('lockout', { failures, until: now() + waitMs });
+        return { ok: false, waitMs };
+      });
     },
 
     async touch() {
