@@ -4,10 +4,13 @@
 export const CREDIT_TTL_MS = 300000;
 export const MAX_SIGNATURES = 500;
 
+import { createExclusive } from './exclusive.js';
+
 const keyOf = (origin, thumbprint) => `${origin}\n${thumbprint}`;
 
 export function createCredits({ session, now }) {
   const readAll = () => session.get('credits', {});
+  const exclusive = createExclusive('jamegao-creditos');
 
   // Lê descartando vencidos; regrava só se algo foi descartado.
   async function live() {
@@ -24,27 +27,31 @@ export function createCredits({ session, now }) {
   }
 
   return {
-    async grant(origin, thumbprint, count) {
+    grant(origin, thumbprint, count) {
       if (!Number.isInteger(count) || count < 1 || count > MAX_SIGNATURES) {
-        throw new RangeError(`count deve ser inteiro de 1 a ${MAX_SIGNATURES}`);
+        return Promise.reject(new RangeError(`count deve ser inteiro de 1 a ${MAX_SIGNATURES}`));
       }
-      const all = await live();
-      all[keyOf(origin, thumbprint)] = { origin, thumbprint, remaining: count, expires: now() + CREDIT_TTL_MS };
-      await session.set('credits', all);
+      return exclusive(async () => {
+        const all = await live();
+        all[keyOf(origin, thumbprint)] = { origin, thumbprint, remaining: count, expires: now() + CREDIT_TTL_MS };
+        await session.set('credits', all);
+      });
     },
-    async consume(origin, thumbprint) {
-      const all = await live();
-      const k = keyOf(origin, thumbprint);
-      const c = all[k];
-      if (!c) return false;
-      c.remaining -= 1;
-      if (c.remaining <= 0) delete all[k];
-      await session.set('credits', all);
-      return true;
+    consume(origin, thumbprint) {
+      return exclusive(async () => {
+        const all = await live();
+        const k = keyOf(origin, thumbprint);
+        const c = all[k];
+        if (!c) return false;
+        c.remaining -= 1;
+        if (c.remaining <= 0) delete all[k];
+        await session.set('credits', all);
+        return true;
+      });
     },
-    async has(origin, thumbprint) {
-      return keyOf(origin, thumbprint) in (await live());
+    has(origin, thumbprint) {
+      return exclusive(async () => keyOf(origin, thumbprint) in (await live()));
     },
-    clear: () => session.remove('credits'),
+    clear: () => exclusive(() => session.remove('credits')),
   };
 }
