@@ -70,3 +70,20 @@ test('clear zera tudo', async () => {
   await c.clear();
   assert.equal(await c.has(O, T), false);
 });
+
+test('consume concorrente não gasta mais que o concedido', async () => {
+  const { c } = setup();
+  await c.grant(O, T, 1);
+  const r = await Promise.all([c.consume(O, T), c.consume(O, T)]);
+  assert.deepEqual(r.filter(Boolean).length, 1);
+});
+
+test('grant e consume concorrentes de pares distintos persistem ambos', async () => {
+  const { c } = setup();
+  const O2 = 'https://outra.example';
+  await c.grant(O2, T, 2);
+  await Promise.all([c.grant(O, T, 3), c.consume(O2, T)]);
+  assert.equal(await c.consume(O, T), true);
+  assert.equal(await c.consume(O2, T), true);
+  assert.equal(await c.consume(O2, T), false);
+});

@@ -43,3 +43,21 @@ test('noteOfficial vai para a sessão e não entra em list', async () => {
   assert.deepEqual(await kv.session.get('officialSeen'), [O]);
   assert.deepEqual(await s.list(), []);
 });
+
+test('certCount inválido não anuncia', async () => {
+  const { s } = setup();
+  for (const bad of [undefined, NaN, null, '1x']) assert.equal(await s.shouldAnnounce(O, bad), false);
+});
+
+test('gravações concorrentes não se perdem', async () => {
+  const { s } = setup();
+  const O2 = 'https://outra.example';
+  await Promise.all([s.setAllowed(O, true), s.setPreferOfficial(O2, true), s.setPreferOfficial(O, true)]);
+  assert.deepEqual(await s.get(O), { allowed: true, preferOfficial: true });
+  assert.equal((await s.get(O2)).preferOfficial, true);
+  await Promise.all([s.noteOfficial(O), s.noteOfficial(O2)]);
+  assert.equal(await s.officialSeen(O), true);
+  assert.equal(await s.officialSeen(O2), true);
+  await Promise.all([s.remove(O), s.setAllowed(O2, false)]);
+  assert.deepEqual((await s.list()).map((x) => x.origin), [O2]);
+});
