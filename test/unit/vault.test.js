@@ -60,6 +60,38 @@ test('senha errada não destrava', async () => {
   assert.equal(await vault.isUnlocked(), false);
 });
 
+test('unlock simultâneos com senha errada contam todas as falhas', async () => {
+  const { vault, kv } = setup();
+  await vault.create(PW);
+  await vault.lock();
+  const rs = await Promise.all([1, 2].map(() => vault.unlock('errada-errada')));
+  assert.deepEqual(rs.map((r) => r.ok), [false, false]);
+  assert.equal((await kv.local.get('lockout')).failures, 2);
+  const more = await Promise.all([1, 2, 3].map(() => vault.unlock('errada-errada')));
+  // 3ª falha ainda sem espera; 4ª: 5 s; 5ª chamada cai na espera sem contar.
+  assert.equal(more[1].waitMs, 5000);
+  assert.equal(more[2].ok, false);
+  assert.equal((await kv.local.get('lockout')).failures, 4);
+});
+
+test('senha é normalizada em NFC', async () => {
+  const { vault } = setup();
+  await vault.create('sen\u0068a-cafe\u0301-ok'); // e + acento combinante
+  await vault.lock();
+  assert.deepEqual(await vault.unlock('senha-caf\u00e9-ok'), { ok: true });
+});
+
+test('iterações gravadas fora da faixa: cofre corrompido', async () => {
+  const kv = memoryKv();
+  const v = createVault({ ...kv, now: fakeClock(0).now });
+  await v.create(PW);
+  const meta = await kv.local.get('vaultMeta');
+  await kv.local.set('vaultMeta', { ...meta, iterations: 5 });
+  await v.lock();
+  await assert.rejects(() => v.unlock(PW), /cofre-corrompido/);
+  assert.equal(await kv.local.get('lockout'), undefined);
+});
+
 test('espera crescente', async () => {
   const { vault, clock } = setup();
   await vault.create(PW);
@@ -71,6 +103,7 @@ test('espera crescente', async () => {
     waits.push(r.waitMs);
     clock.advance(r.waitMs + 1);
   }
+  assert.deepEqual(BACKOFF_S, [0, 0, 0, 5, 15, 30, 60, 300]);
   assert.deepEqual(waits.slice(0, 3), [0, 0, 0]);
   assert.equal(waits[3], 5000); // 4ª falha
   assert.equal(waits[4], 15000);
