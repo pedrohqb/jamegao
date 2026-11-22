@@ -110,3 +110,17 @@ api.windows.onRemoved.addListener((windowId) => {
 api.runtime.onInstalled.addListener((details) => {
   if (details.reason === 'install') api.tabs.create({ url: api.runtime.getURL('pages/import.html') });
 });
+
+// Travamento automático: a cada minuto confere o cofre (vault.isUnlocked trava
+// após 30 min sem uso) e, se travou, descarta os créditos de assinatura.
+const ALARM_TRAVAMENTO = 'travamento';
+const agendarTravamento = () => api.alarms.create(ALARM_TRAVAMENTO, { periodInMinutes: 1 });
+api.runtime.onInstalled.addListener(agendarTravamento);
+api.runtime.onStartup.addListener(agendarTravamento);
+api.alarms.onAlarm.addListener((alarm) => {
+  if (alarm.name !== ALARM_TRAVAMENTO) return;
+  const { vault, credits } = modules();
+  vault.isUnlocked()
+    .then((unlocked) => (unlocked ? undefined : credits.clear()))
+    .catch(() => {});
+});
