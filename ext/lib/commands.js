@@ -54,7 +54,14 @@ export function createCommands({ vault, certs, sites, credits, platformOs }) {
     if (!(await credits.consume(origin, thumbprint))) {
       return { needs: { sign: { count: 1, thumbprint } } };
     }
-    const pkcs8 = await vault.decrypt(entry.key);
+    let pkcs8;
+    try {
+      pkcs8 = await vault.decrypt(entry.key);
+    } catch {
+      // O cofre travou entre a conferência e a decifragem.
+      if (!(await vault.isUnlocked())) return { needs: { unlock: true, sign: { count: 1, thumbprint } } };
+      throw new PkiError('Falha ao decifrar a chave.', CODES.internal);
+    }
     try {
       const sig = kind === 'data'
         ? await signData(pkcs8, input, hashName)
@@ -105,7 +112,7 @@ export function createCommands({ vault, certs, sites, credits, platformOs }) {
       return await guarded[command](request ?? {}, origin);
     } catch (e) {
       if (e instanceof PkiError) return fail(e.code, e.message);
-      return fail(CODES.internal, e?.message || 'Erro interno.');
+      return fail(CODES.internal, 'Erro interno do Jamegão.');
     }
   }
 
