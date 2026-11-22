@@ -78,6 +78,7 @@ const semJanela = async (ms = 1000) => {
 // Clica e espera a janela se fechar sozinha.
 async function responder(p, seletor, senha) {
   if (senha !== undefined) await p.$eval('#senha', (el, v) => { el.value = v; }, senha);
+  if (seletor === '#confirmar') await p.waitForSelector('#confirmar:not([disabled])');
   const fechou = new Promise((r) => p.once('close', r));
   await p.click(seletor);
   await fechou;
@@ -195,6 +196,7 @@ test('senha errada mantém a janela e mostra a espera', { timeout: 60000 }, asyn
   for (let i = 0; i < 4; i++) {
     await j.$eval('#senha', (el) => { el.value = 'errada-errada'; });
     await j.$eval('#status', (el) => { el.className = ''; el.textContent = ''; });
+    await j.waitForSelector('#confirmar:not([disabled])');
     await j.click('#confirmar');
     await j.waitForSelector('#status.erro');
     await j.waitForSelector('#confirmar:not([disabled])');

@@ -172,3 +172,27 @@ test('resolver fecha a janela registrada; responder pedido inexistente é inofen
   assert.deepEqual(await prompts.answer(id, { allow: true }), { done: true });
   assert.equal(sent.length, 1);
 });
+
+test('registro órfão expira e não prende a aba', async () => {
+  const { PROMPT_TIMEOUT_MS } = await import('../../ext/lib/prompts.js');
+  await setup();
+  const a = await prompts.open(full(), ctx());
+  clock.advance(PROMPT_TIMEOUT_MS + 5000);
+  assert.deepEqual(await prompts.open(full(), ctx()), { busy: true }); // ainda dentro da folga
+  clock.advance(6000);
+  const b = await prompts.open(full(), ctx());
+  assert.ok(b.id && b.id !== a.id);
+  assert.equal(await prompts.describe(a.id), null);
+  assert.equal(sent[0].msg.id, a.id);
+  assert.equal(sent[0].msg.outcome.exception.code, 'user_cancelled');
+});
+
+test('tabClosed recusa só o pedido daquela aba', async () => {
+  await setup();
+  const a = await prompts.open(full(), ctx());
+  const b = await prompts.open(full(), ctx({ tabId: 8 }));
+  await prompts.tabClosed(7);
+  assert.equal(await prompts.describe(a.id), null);
+  assert.notEqual(await prompts.describe(b.id), null);
+  assert.ok((await prompts.open(full(), ctx())).id);
+});

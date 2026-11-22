@@ -45,6 +45,7 @@ test('30 minutos sem uso travam o cofre', async () => {
   };
   const lista = page.evaluate(() => window.listar());
   let j = await janela();
+  await j.waitForSelector('#confirmar:not([disabled])');
   let f = fechada(j); await j.click('#confirmar'); await f;
   const T = (await lista)[0].thumbprint;
 
