@@ -162,7 +162,9 @@ Jamegão.
   oferece o interruptor "deixar a extensão oficial responder neste site". É o
   caminho de quem usa token naquele tribunal.
 - Com o interruptor ligado, o Jamegão não se anuncia nem responde naquele
-  site.
+  site. Se o interruptor for ligado com a página aberta, o Jamegão retira o
+  próprio elemento de detecção e fica calado também nos pedidos em curso
+  (não responde nem com recusa, para não chegar à página antes da oficial).
 - Com as duas respondendo, a primeira resposta vence e a segunda é descartada
   pelo SDK com um erro no console. A implementação precisa confirmar em teste
   que isso não quebra o fluxo da página; se quebrar, é achado a relatar.
@@ -203,6 +205,15 @@ Jamegão.
   página.
 - Recusa ou janela fechada respondem à página com o código de cancelamento
   pelo usuário, que o e-SAJ já trata.
+- A janela tem também "Bloquear este site", que recusa e grava o bloqueio.
+- A página desiste em 120 s; depois disso a janela não pode mais ser
+  aprovada.
+- Depois de uma recusa, de fechar a janela ou de deixar os 120 s vencerem, o
+  mesmo site fica 15 s sem poder abrir outra janela: a tela de login do
+  e-SAJ repete a listagem de certificados na hora, até três vezes, e sem a
+  pausa a janela reabriria.
+- Sempre que uma janela abre antes de uma assinatura (site novo ou cofre
+  travado), ela mostra a quantidade, mesmo que sobre crédito.
 - O estado dos créditos fica em `storage.session`, não em memória do fundo.
 
 ### 8.6 Rede **(decisão de Pedro)**

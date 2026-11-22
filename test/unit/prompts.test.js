@@ -287,3 +287,19 @@ test('prazo vencido na aba pausa o site (o e-SAJ repete a listagem na hora)', as
   clock.advance(REFUSAL_PAUSE_MS);
   assert.ok((await prompts.open({ site: true }, ctx())).id);
 });
+
+test('se gravar o site falha depois do crédito, o crédito não sobra', async () => {
+  await setup({ unlocked: true });
+  sites.setAllowed = async () => { throw new Error('idb'); };
+  const { id } = await prompts.open(full(), ctx());
+  assert.deepEqual(await prompts.answer(id, { allow: true }), { done: true, error: 'interno' });
+  assert.equal(await credits.has(O, T), false);
+});
+
+test('bloqueio que não grava avisa a janela', async () => {
+  await setup({ unlocked: true });
+  sites.setAllowed = async () => { throw new Error('idb'); };
+  const { id } = await prompts.open(full(), ctx());
+  assert.deepEqual(await prompts.answer(id, { block: true }), { done: true, error: 'bloqueio' });
+  assert.equal(sent[0].msg.outcome.exception.code, 'user_cancelled');
+});

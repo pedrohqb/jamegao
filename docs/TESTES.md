@@ -41,10 +41,10 @@ A extensão temporária e o cofre somem quando o Firefox fecha. É normal.
 Marque cada item. Os de 1 a 7 rodam no e-SAJ do TJSP; repita pelo menos o 2
 no Firefox.
 
-1. **Cofre antigo migrou (só no Brave, que já tinha cofre).** Depois de
-   recarregar, abra o ícone do Jamegão. Esperado: o certificado aparece na
-   lista e o cofre está "travado". Não precisa reimportar o PFX. A senha
-   antiga continua valendo no passo 2.
+1. **Atualização preserva o cofre.** Com o Jamegão já instalado e com
+   certificado, substitua os arquivos na mesma pasta e recarregue. Abra o
+   ícone. Esperado: o certificado e os sites continuam lá e o cofre está
+   "travado"; a senha continua valendo no passo 2.
 
 2. **Login por certificado.** No e-SAJ, vá em "Identificar-se" e escolha o
    certificado digital. Esperado:
@@ -122,4 +122,4 @@ Um arquivo só, por exemplo para repetir o de convivência:
 
     node --test test/e2e/convivencia.test.mjs
 
-Estado em 22/11/2026: unidade 139/139, ponta a ponta no Chrome 39/39.
+Estado em 22/11/2026: unidade 140/140, ponta a ponta no Chrome 39/39.

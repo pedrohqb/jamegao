@@ -7,10 +7,6 @@
 //            só os contextos da extensão leem.
 import { STORES, run } from './db.js';
 
-// Chaves que a v0.1 de antes gravava em storage.local; migram uma vez.
-const LEGADAS = ['vaultMeta', 'lockout', 'sites'];
-const MIGRADO = '__migrado-de-storage-local';
-
 function wrap(area) {
   return {
     async get(key, fallback) {
@@ -31,46 +27,19 @@ const idbGet = (key) => run(S, 'readonly', (s) => s.get(key));
 const idbSet = (key, value) => run(S, 'readwrite', (s) => s.put(value, key)).then(() => undefined);
 const idbRemove = (key) => run(S, 'readwrite', (s) => s.delete(key)).then(() => undefined);
 
-const comTrava = (nome, fn) =>
-  globalThis.navigator?.locks?.request ? globalThis.navigator.locks.request(nome, fn) : fn();
-
-// Uma única vez: copia o que houver em storage.local e apaga de lá. Depois
-// da marca, storage.local nunca mais é lido (nada que um script de conteúdo
-// grave ali entra no cofre).
-async function migrar(legado) {
-  if (!legado) return;
-  await comTrava('jamegao-migracao', async () => {
-    if ((await idbGet(MIGRADO)) === true) return;
-    for (const k of LEGADAS) {
-      const v = await legado.get(k);
-      if (v !== undefined && (await idbGet(k)) === undefined) await idbSet(k, v);
-    }
-    for (const k of LEGADAS) await legado.remove(k);
-    await idbSet(MIGRADO, true);
-  });
-}
-
-export function idbKv({ legado } = {}) {
-  let pronto = null;
-  const antes = () => {
-    pronto ??= migrar(legado).catch((e) => { pronto = null; throw e; });
-    return pronto;
-  };
+// Antes do primeiro envio às lojas, uma versão de desenvolvimento gravava
+// em storage.local; não há migração: storage.local nunca é lido.
+export function idbKv() {
   return {
     async get(key, fallback) {
-      await antes();
       const v = await idbGet(key);
       return v === undefined ? fallback : v;
     },
     async set(key, value) {
-      await antes();
       // Mesma semântica do chrome.storage: guarda uma cópia em JSON.
       await idbSet(key, JSON.parse(JSON.stringify(value)));
     },
-    async remove(key) {
-      await antes();
-      await idbRemove(key);
-    },
+    remove: (key) => idbRemove(key),
   };
 }
 
@@ -83,5 +52,5 @@ export function browserKv() {
   } catch {
     // ignorado
   }
-  return { local: idbKv({ legado: wrap(api.storage.local) }), session: wrap(api.storage.session) };
+  return { local: idbKv(), session: wrap(api.storage.session) };
 }

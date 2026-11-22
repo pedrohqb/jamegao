@@ -1,6 +1,6 @@
 # Pendências da v0.1
 
-Estado em 22/11/2026, 0h50. Ramo `v0.1`. Testes: unidade 139/139; ponta a
+Estado em 22/11/2026, 1h30. Ramo `v0.1`. Testes: unidade 140/140; ponta a
 ponta no Chrome 39/39.
 
 ## Testado por Pedro
@@ -25,8 +25,9 @@ TJSP.
 3. Confirmação vencida (120 s) não pode mais ser aprovada nem exibida.
 4. Sal e conferência do cofre, contador de tentativas e decisões por site
    saíram de `storage.local` (alcançável pelos scripts de conteúdo) e foram
-   para o IndexedDB da extensão. Instalações antigas migram uma única vez;
-   depois disso `storage.local` nunca mais é lido.
+   para o IndexedDB da extensão. `storage.local` não é lido em momento
+   algum (sem migração: a v0.1 nunca foi publicada; quem tinha versão de
+   desenvolvimento reimporta o PFX).
 5. Texto do desenho corrigido: no `signHash` a chave fica em memória do
    JavaScript durante a assinatura.
 6. Janela de confirmação: botão "Bloquear este site", e depois de uma recusa
@@ -45,6 +46,15 @@ TJSP.
    (`carregarCertificadosWebSigner` em `saj-certificado.js`). Agora o prazo
    vencido conta como recusa e pausa o site por 15 s, e as repetições falham
    sem abrir janela.
+
+11. Revisão independente das correções (22/11, 1h): aprovada com ressalvas,
+   sem achado crítico nem importante. Os sete achados menores foram
+   corrigidos: crédito não sobra quando o aceite falha e toda janela antes de
+   assinar mostra a quantidade; falha ao gravar o bloqueio é avisada;
+   migração retirada; conexões do banco cedem quando outra versão pede
+   (sem rejeitar no "bloqueado", que vazaria conexão); janela avisa
+   quando o pedido expirou; desenho atualizado. O login e o prazo de 120 s
+   no Firefox foram testados por Pedro com a build destas correções.
 
 ## Firefox
 

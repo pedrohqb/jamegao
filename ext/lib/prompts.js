@@ -103,12 +103,15 @@ export function createPrompts({ session, vault, certs, sites, credits, notify, c
         return { done: true, expired: true };
       }
       if (block === true) {
+        let gravou = true;
         try {
           await sites.setAllowed(rec.origin, false);
           await credits.clear();
-        } catch { /* a recusa vale mesmo assim */ }
+        } catch {
+          gravou = false; // a recusa vale mesmo assim; o usuário é avisado
+        }
         await refuse(rec, { pause: true });
-        return { done: true };
+        return gravou ? { done: true } : { done: true, error: 'bloqueio' };
       }
       if (allow !== true) {
         await refuse(rec, { pause: true });
@@ -122,7 +125,9 @@ export function createPrompts({ session, vault, certs, sites, credits, notify, c
         if (rec.needs.sign) await credits.grant(rec.origin, rec.needs.sign.thumbprint, rec.needs.sign.count);
         if (rec.needs.site) await sites.setAllowed(rec.origin, true);
       } catch {
-        // Falhou no meio: a aba recebe a falha agora, em vez de esperar 120 s.
+        // Falhou no meio: nenhum crédito sobra, e a aba recebe a falha agora,
+        // em vez de esperar 120 s.
+        if (rec.needs.sign) await credits.clear().catch(() => {});
         await finish(rec, fail(CODES.internal, 'Não foi possível registrar a autorização. Tente de novo.'));
         return { done: true, error: 'interno' };
       }

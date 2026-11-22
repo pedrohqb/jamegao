@@ -2,7 +2,6 @@ import 'fake-indexeddb/auto';
 import { test, beforeEach } from 'node:test';
 import assert from 'node:assert/strict';
 import { idbKv } from '../../ext/lib/kv.js';
-import { memoryKv } from './helpers.js';
 
 beforeEach(async () => {
   await new Promise((res) => { const r = indexedDB.deleteDatabase('jamegao'); r.onsuccess = r.onerror = r.onblocked = res; });
@@ -25,34 +24,22 @@ test('guarda cópia: mudar o objeto depois não muda o gravado', async () => {
   assert.deepEqual(await kv.get('v'), { n: 1 });
 });
 
-test('migra cofre, tentativas e sites de storage.local uma vez e apaga de lá', async () => {
-  const legado = memoryKv().local;
-  await legado.set('vaultMeta', { salt: 's', iterations: 600000, check: {} });
-  await legado.set('lockout', { failures: 3, until: 0 });
-  await legado.set('sites', { 'https://esaj.tjsp.jus.br': { allowed: true } });
-  await legado.set('outra', 1);
-  const kv = idbKv({ legado });
-  assert.equal((await kv.get('vaultMeta')).salt, 's');
-  assert.equal((await kv.get('lockout')).failures, 3);
-  assert.equal((await kv.get('sites'))['https://esaj.tjsp.jus.br'].allowed, true);
-  for (const k of ['vaultMeta', 'lockout', 'sites']) assert.equal(await legado.get(k), undefined, k);
-  assert.equal(await legado.get('outra'), 1); // não é nosso: fica
-});
-
-test('depois da migração, o que aparecer em storage.local é ignorado', async () => {
-  const legado = memoryKv().local;
-  await idbKv({ legado }).get('qualquer');
-  // Um script de conteúdo comprometido grava ali depois:
-  await legado.set('sites', { 'https://mau.com.br': { allowed: true } });
-  await legado.set('lockout', { failures: 0, until: 0 });
-  const kv = idbKv({ legado });
-  assert.equal(await kv.get('sites'), undefined);
-  assert.equal(await kv.get('lockout'), undefined);
-});
-
-test('migração não sobrescreve o que já está no IndexedDB', async () => {
-  await idbKv().set('lockout', { failures: 5, until: 9 });
-  const legado = memoryKv().local;
-  await legado.set('lockout', { failures: 0, until: 0 });
-  assert.deepEqual(await idbKv({ legado }).get('lockout'), { failures: 5, until: 9 });
+test('browserKv persiste no IndexedDB e nunca lê storage.local', async () => {
+  const lidas = [];
+  globalThis.chrome = {
+    storage: {
+      local: { get: async (k) => { lidas.push(k); return { sites: { 'https://mau.com.br': { allowed: true } } }; }, set: async () => {}, remove: async () => {} },
+      session: { get: async () => ({}), set: async () => {}, remove: async () => {} },
+    },
+  };
+  try {
+    const { browserKv } = await import('../../ext/lib/kv.js');
+    const kv = browserKv();
+    assert.equal(await kv.local.get('sites'), undefined);
+    await kv.local.set('sites', { a: 1 });
+    assert.deepEqual(await kv.local.get('sites'), { a: 1 });
+    assert.deepEqual(lidas, []);
+  } finally {
+    delete globalThis.chrome;
+  }
 });

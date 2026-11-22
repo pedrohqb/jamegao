@@ -16,8 +16,15 @@ const openDb = () =>
       if (!db.objectStoreNames.contains(STORES.certs)) db.createObjectStore(STORES.certs, { keyPath: 'thumbprint' });
       if (!db.objectStoreNames.contains(STORES.kv)) db.createObjectStore(STORES.kv);
     };
-    req.onsuccess = () => resolve(req.result);
+    req.onsuccess = () => {
+      const db = req.result;
+      // Outra versão quer atualizar o banco: esta conexão sai da frente.
+      db.onversionchange = () => db.close();
+      resolve(db);
+    };
     req.onerror = () => reject(req.error);
+    // Sem onblocked: rejeitar ali deixaria vazar a conexão que abre depois.
+    // As conexões abertas cedem sozinhas (onversionchange acima).
   });
 
 export async function run(store, mode, fn) {

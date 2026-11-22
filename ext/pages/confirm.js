@@ -55,6 +55,16 @@ async function responder(allow, block = false) {
       return;
     }
     $('senha').value = '';
+    const aviso = r?.expired ? 'O pedido expirou. Repita a operação no site.'
+      : r?.error === 'bloqueio' ? 'Pedido recusado, mas não foi possível gravar o bloqueio. Bloqueie o site pelo ícone do Jamegão.'
+        : r?.error === 'interno' ? 'Não foi possível registrar a autorização. Repita a operação no site.'
+          : null;
+    if (aviso) {
+      status('erro', aviso);
+      finished = true; // já resolvido no fundo; fechar não recusa de novo
+      setTimeout(() => window.close(), 4000);
+      return;
+    }
     shut();
   } catch {
     status('erro', 'Falha ao falar com a extensão.');

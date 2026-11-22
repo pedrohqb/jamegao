@@ -35,7 +35,10 @@ beforeEach(async () => {
   await page.evaluate(async () => {
     await chrome.storage.local.clear();
     await chrome.storage.session.clear();
-    await new Promise((res) => { const r = indexedDB.deleteDatabase('jamegao'); r.onsuccess = r.onerror = r.onblocked = res; });
+    // Esvazia as tabelas em vez de apagar o banco (apagar fica esperando as
+      // conexões de outros contextos e pode não terminar).
+      const { STORES, run } = await import('/lib/db.js');
+      for (const s of Object.values(STORES)) await run(s, 'readwrite', (st) => st.clear());
   });
   await page.close();
 });

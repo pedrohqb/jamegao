@@ -49,9 +49,10 @@ export function createCommands({ vault, certs, sites, credits, platformOs }) {
     const needs = {};
     if (!(await siteOk(origin))) needs.site = true;
     if (!(await vault.isUnlocked())) needs.unlock = true;
-    // Cofre travado: o crédito que sobrou não basta; quem digita a senha vê
-    // de novo o que vai assinar (e o crédito antigo é substituído).
-    if (needs.unlock || !(await credits.has(origin, thumbprint))) needs.sign = { count: 1, thumbprint };
+    // Se alguma janela vai abrir (site novo ou cofre travado), ela mostra
+    // de novo o que vai ser assinado, mesmo que sobre crédito (que é
+    // substituído).
+    if (needs.site || needs.unlock || !(await credits.has(origin, thumbprint))) needs.sign = { count: 1, thumbprint };
     if (Object.keys(needs).length) return { needs };
     if (!(await credits.consume(origin, thumbprint))) {
       return { needs: { sign: { count: 1, thumbprint } } };

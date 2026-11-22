@@ -265,3 +265,12 @@ test('site que prefere a extensão oficial: fica calado em tudo, menos a inicial
   }
   assert.equal((await run('getVersion', {})).success, true);
 });
+
+test('site novo com crédito sobrando: a janela mostra também a quantidade', async () => {
+  await setup();
+  await credits.grant(O, T, 5);
+  assert.deepEqual(
+    await run('signData', { certificateThumbprint: T, data: 'eA==' }),
+    { needs: { site: true, sign: { count: 1, thumbprint: T } } },
+  );
+});
