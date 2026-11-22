@@ -66,13 +66,13 @@ async function importar() {
     const model = buildModel(forge, parsed.cert, thumbprint);
     const key = await vault.encrypt(pkcs8);
     await certs.put({ thumbprint, model, certB64: bytesToB64(parsed.certDer), key, importedAt: Date.now() });
-    for (const id of ['senha-pfx', 'senha-cofre', 'senha-cofre-2']) $(id).value = '';
     $('arquivo').value = '';
     status('ok', `Certificado de ${model.subjectName} importado.`);
   } catch (err) {
-    status('erro', err && err.message === 'senha-curta' ? 'A senha do cofre precisa ter pelo menos 8 caracteres.' : (err && err.message) || 'Falha ao importar.');
+    status('erro', err && err.message === 'senha-curta' ? 'A senha do cofre precisa ter pelo menos 8 caracteres.' : (err && err.message) || 'Falha ao importar o certificado.');
   } finally {
     if (pkcs8) pkcs8.fill(0);
+    for (const id of ['senha-pfx', 'senha-cofre', 'senha-cofre-2']) $(id).value = '';
     $('importar').disabled = false;
     await refreshVaultFields();
     await refreshList();
