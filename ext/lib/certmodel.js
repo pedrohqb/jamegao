@@ -1,4 +1,4 @@
-// Modelo do certificado no formato que o SDK Web PKI espera.
+// Modelo do certificado no formato que o SDK de assinatura da página espera.
 // O forge é recebido por parâmetro (vendor/forge.min.js na extensão).
 
 const OID = {

@@ -28,13 +28,11 @@ const rel = (p) => relative(ext, p).split(sep).join('/');
 const EXCLUIDOS = new Set(['content.js', 'lib/protocol.js']);
 const MARCAS = /websigner|web ?pki|softplan|lacuna/i;
 
-// Comentários de código não chegam ao usuário; o tipo de mensagem interna
-// "webpki-request" é identificador técnico do protocolo, não texto.
+// Comentários de código não chegam ao usuário.
 function semComentarios(js) {
   return js
     .replace(/\/\*[\s\S]*?\*\//g, '')
-    .replace(/(^|[^:\\'"`])\/\/.*$/gm, '$1')
-    .replace(/webpki-request/g, '');
+    .replace(/(^|[^:\\'"`])\/\/.*$/gm, '$1');
 }
 
 test('nenhum texto voltado ao usuário cita as marcas', () => {

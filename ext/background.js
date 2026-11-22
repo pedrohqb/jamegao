@@ -49,7 +49,7 @@ const modules = () => {
   return { vault, certs, sites, credits, prompts };
 };
 
-async function webpkiRequest(msg, sender) {
+async function atenderPedido(msg, sender) {
   const m = modules();
   const commands = createCommands({ ...m, platformOs: await platformOs() });
   const result = await commands.handle({ command: msg.command, request: msg.request }, senderOrigin(sender));
@@ -90,9 +90,9 @@ async function promptMessage(msg, sender) {
 api.runtime.onMessage.addListener((msg, sender, sendResponse) => {
   if (!msg) return false;
   let task;
-  if (msg.type === 'webpki-request') {
+  if (msg.type === 'jamegao-pedido') {
     if (!sender || !sender.tab) return false; // só páginas (content script) fazem pedidos
-    task = webpkiRequest(msg, sender).catch((e) => fail(CODES.internal, 'Erro interno do Jamegão: ' + (e && e.message)));
+    task = atenderPedido(msg, sender).catch(() => fail(CODES.internal, 'Erro interno do Jamegão.'));
   } else if (['prompt-describe', 'prompt-answer', 'prompt-abandon'].includes(msg.type)) {
     task = promptMessage(msg, sender).catch(() => null);
   } else {

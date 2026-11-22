@@ -118,7 +118,7 @@
 
   const ask = async (brand, message) => {
     const result = await api.runtime.sendMessage({
-      type: 'webpki-request',
+      type: 'jamegao-pedido',
       brand: brand.prefix,
       command: String(message.command),
       request: message.request ?? null,
