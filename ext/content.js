@@ -47,9 +47,39 @@
     }
     return true;
   };
-  if (!announce()) {
-    document.addEventListener('DOMContentLoaded', announce, { once: true });
-  }
+
+  // O fundo decide, pela origem que o navegador informa, se este quadro
+  // deve se anunciar (precisa de certificado importado e de o site não estar
+  // bloqueado nem preferir a extensão oficial). Sem resposta, não anuncia.
+  const announced = (async () => {
+    try {
+      const r = await api.runtime.sendMessage({ type: 'announce?' });
+      return !!r && r.announce === true;
+    } catch {
+      return false;
+    }
+  })();
+  announced.then((yes) => {
+    if (yes && !announce()) document.addEventListener('DOMContentLoaded', announce, { once: true });
+  });
+
+  // Elemento de marca que não é nosso: a extensão oficial está presente.
+  let officialReported = false;
+  const noteOfficial = () => {
+    if (officialReported) return;
+    for (const brand of BRANDS) {
+      for (const id of brand.ids) {
+        for (const el of document.querySelectorAll(`[id="${id}"]`)) {
+          if (el.hasAttribute('data-jamegao')) continue;
+          officialReported = true;
+          Promise.resolve(api.runtime.sendMessage({ type: 'official-seen' })).catch(() => {});
+          return;
+        }
+      }
+    }
+  };
+  noteOfficial();
+  document.addEventListener('DOMContentLoaded', noteOfficial, { once: true });
 
   const failure = (message) => ({
     success: false,
@@ -161,7 +191,9 @@
   let queue = Promise.resolve();
   const enqueue = (brand, channel, message) => {
     if (!message || typeof message !== 'object' || typeof message.requestId !== 'string') return;
-    queue = queue.then(() => handle(brand, channel, message)).catch(() => {});
+    queue = queue
+      .then(async () => { if (await announced) await handle(brand, channel, message); })
+      .catch(() => {});
   };
 
   for (const brand of BRANDS) {

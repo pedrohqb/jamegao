@@ -12,6 +12,8 @@ export const ROOT = path.resolve(here, '../..');
 export const EXT = path.join(ROOT, 'ext');
 export const WWW = path.join(ROOT, 'test/www');
 export const FIX = path.join(ROOT, 'test/fix');
+// Extensão "oficial" falsa, para os testes de convivência (passe-a em extras).
+export const OFICIAL_FALSA = path.join(ROOT, 'test/oficial-falsa');
 
 const tmpDirs = [];
 
@@ -43,7 +45,7 @@ const startServer = async () => {
   return server;
 };
 
-export async function launch(name = 'chrome', { userDataDir } = {}) {
+export async function launch(name = 'chrome', { userDataDir, extras = [] } = {}) {
   if (name === 'firefox') throw new Error('Firefox não disponível neste ambiente');
   if (name !== 'chrome') throw new Error('Navegador desconhecido: ' + name);
 
@@ -54,7 +56,7 @@ export async function launch(name = 'chrome', { userDataDir } = {}) {
     executablePath: process.env.CHROME || '/usr/bin/google-chrome',
     headless: true,
     ...(userDataDir ? { userDataDir } : {}),
-    args: ['--no-sandbox', `--disable-extensions-except=${extDir}`, `--load-extension=${extDir}`],
+    args: ['--no-sandbox', `--disable-extensions-except=${[extDir, ...extras].join(',')}`, `--load-extension=${[extDir, ...extras].join(',')}`],
   });
   try {
     const sw = await browser.waitForTarget(

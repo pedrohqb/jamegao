@@ -1,5 +1,6 @@
 // Janela de confirmação. Só lê o pedido pelo id (origem e titular vêm do
 // fundo, nunca da página) e responde com a decisão do usuário.
+import { avisoValidade } from '../lib/validade.js';
 const api = globalThis.browser ?? globalThis.chrome;
 const $ = (id) => document.getElementById(id);
 const id = new URLSearchParams(location.search).get('id');
@@ -24,17 +25,10 @@ async function init() {
     const n = d.needs.sign.count;
     $('assinatura').hidden = false;
     $('assinatura').textContent = `Assinar ${n} ${n === 1 ? 'documento' : 'documentos'} com o certificado de ${d.subject ?? 'titular desconhecido'}.`;
-    if (d.validityEnd) {
-      const end = new Date(d.validityEnd);
-      const dias = (end.getTime() - Date.now()) / 86400000;
-      const data = end.toLocaleDateString('pt-BR');
-      if (dias < 0) {
-        $('vencimento').hidden = false;
-        $('vencimento').textContent = `Atenção: este certificado venceu em ${data}.`;
-      } else if (dias <= 30) {
-        $('vencimento').hidden = false;
-        $('vencimento').textContent = `Atenção: este certificado vence em ${data}.`;
-      }
+    const aviso = d.validityEnd ? avisoValidade(d.validityEnd) : null;
+    if (aviso) {
+      $('vencimento').hidden = false;
+      $('vencimento').textContent = 'Atenção: ' + aviso.texto;
     }
   }
   if (d.needs.unlock) {

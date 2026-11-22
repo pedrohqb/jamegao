@@ -87,12 +87,30 @@ async function promptMessage(msg, sender) {
   return prompts.answer(String(msg.id), { allow: msg.allow === true, password: msg.password });
 }
 
+// Anúncio e convivência com a extensão oficial: valem só a origem informada
+// pelo navegador para o quadro (sender.origin), nunca dados da mensagem.
+async function anunciar(sender) {
+  const origin = senderOrigin(sender);
+  if (origin === null) return { announce: false };
+  const { certs, sites } = modules();
+  return { announce: await sites.shouldAnnounce(origin, await certs.count()) };
+}
+
+async function oficialVisto(sender) {
+  const origin = senderOrigin(sender);
+  if (origin !== null) await modules().sites.noteOfficial(origin);
+}
+
 api.runtime.onMessage.addListener((msg, sender, sendResponse) => {
   if (!msg) return false;
   let task;
   if (msg.type === 'jamegao-pedido') {
     if (!sender || !sender.tab) return false; // só páginas (content script) fazem pedidos
     task = atenderPedido(msg, sender).catch(() => fail(CODES.internal, 'Erro interno do Jamegão.'));
+  } else if (msg.type === 'announce?' || msg.type === 'official-seen') {
+    if (!sender || !sender.tab) return false;
+    task = (msg.type === 'announce?' ? anunciar(sender) : oficialVisto(sender))
+      .catch(() => (msg.type === 'announce?' ? { announce: false } : undefined));
   } else if (['prompt-describe', 'prompt-answer', 'prompt-abandon'].includes(msg.type)) {
     task = promptMessage(msg, sender).catch(() => null);
   } else {
