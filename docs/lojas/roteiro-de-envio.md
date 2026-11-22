@@ -18,7 +18,7 @@ Textos prontos: nome, resumo e descrição longa em `docs/lojas/descricao.md`; p
 4. Aba "Práticas de privacidade":
    - Finalidade única: "Assinar documentos nos sites do e-SAJ com certificado digital A1 guardado no próprio navegador, sem instalar programa."
    - Justificativa da permissão `storage`: "Guarda no perfil do navegador os certificados A1 importados pelo usuário, com a chave cifrada pela senha do cofre, e as configurações da extensão. Nada sai do navegador."
-   - Justificativa da permissão `alarms`: "Agenda o bloqueio automático do cofre após o tempo de inatividade escolhido pelo usuário."
+   - Justificativa da permissão `alarms`: "Agenda o bloqueio automático do cofre após 30 minutos sem uso."
    - Justificativa do script de conteúdo (hosts `https://esaj.tjsp.jus.br/*`): "Necessário para que o site do e-SAJ encontre a extensão e peça a assinatura de documentos. O script só repassa as solicitações de assinatura do próprio site à extensão e não lê nem altera outras páginas."
    - Código remoto: "Não" (todo o código está no pacote).
    - Dados do usuário coletados: nenhum (deixe todas as caixas desmarcadas e marque as três declarações de conformidade).

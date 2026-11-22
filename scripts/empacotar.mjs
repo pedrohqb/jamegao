@@ -1,10 +1,11 @@
 // Gera dist/jamegao-<versão>.zip com o conteúdo de ext/ (manifest.json na raiz do zip).
 // Determinístico: entradas ordenadas, data fixa, permissões fixas. Só módulos nativos do Node.
+import { fileURLToPath } from 'node:url';
 import { readFileSync, readdirSync, statSync, mkdirSync, writeFileSync } from 'node:fs';
 import { join, relative, sep } from 'node:path';
 import { deflateRawSync } from 'node:zlib';
 
-const raiz = new URL('../', import.meta.url).pathname;
+const raiz = fileURLToPath(new URL('../', import.meta.url));
 const ext = join(raiz, 'ext');
 const versao = JSON.parse(readFileSync(join(ext, 'manifest.json'), 'utf8')).version;
 
