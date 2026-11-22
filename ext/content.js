@@ -63,6 +63,18 @@
     if (yes && !announce()) document.addEventListener('DOMContentLoaded', announce, { once: true });
   });
 
+  const stillAnnounced = async () => {
+    try {
+      const r = await api.runtime.sendMessage({ type: 'announce?', recheck: true });
+      return !!r && r.announce === true;
+    } catch {
+      return false;
+    }
+  };
+  const retract = () => {
+    for (const el of document.querySelectorAll('[data-jamegao]')) el.remove();
+  };
+
   // Elemento de marca que não é nosso: a extensão oficial está presente.
   let officialReported = false;
   const noteOfficial = () => {
@@ -192,7 +204,13 @@
   const enqueue = (brand, channel, message) => {
     if (!message || typeof message !== 'object' || typeof message.requestId !== 'string') return;
     queue = queue
-      .then(async () => { if (await announced) await handle(brand, channel, message); })
+      .then(async () => {
+        if (!(await announced)) return;
+        // A decisão pode ter mudado (o usuário preferiu a oficial): se mudou,
+        // some e fica calado, para só a outra extensão responder.
+        if (!(await stillAnnounced())) { retract(); return; }
+        await handle(brand, channel, message);
+      })
       .catch(() => {});
   };
 

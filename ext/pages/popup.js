@@ -105,17 +105,21 @@ $('importar').addEventListener('click', () => {
 $('esqueci').addEventListener('click', () => { $('esqueci-aviso').hidden = false; });
 $('cancelar-esqueci').addEventListener('click', () => { $('esqueci-aviso').hidden = true; });
 $('apagar-tudo').addEventListener('click', async () => {
-  try {
-    await vault.destroy();
-    for (const c of await certs.list()) await certs.remove(c.thumbprint);
-    for (const s of await sites.list()) await sites.remove(s.origin);
-    await credits.clear();
-    $('esqueci-aviso').hidden = true;
-    await render();
-    status('ok', 'Cofre e certificados apagados.');
-  } catch {
-    status('erro', 'Não foi possível apagar tudo.');
+  // Cofre por último: se algo falhar antes, a senha ainda abre o que sobrou.
+  const passos = [
+    ['certificados', async () => { for (const c of await certs.list()) await certs.remove(c.thumbprint); }],
+    ['sites', async () => { for (const s of await sites.list()) await sites.remove(s.origin); }],
+    ['créditos', () => credits.clear()],
+    ['cofre', async () => { await vault.destroy(); await kv.local.remove('lockout'); }],
+  ];
+  const falhas = [];
+  for (const [nome, fn] of passos) {
+    try { await fn(); } catch { falhas.push(nome); }
   }
+  $('esqueci-aviso').hidden = true;
+  await render();
+  if (falhas.length) status('erro', `Não foi possível apagar: ${falhas.join(', ')}. Tente de novo.`);
+  else status('ok', 'Cofre e certificados apagados.');
 });
 
 await render();

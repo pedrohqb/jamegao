@@ -103,8 +103,12 @@ export function createCommands({ vault, certs, sites, credits, platformOs }) {
     try {
       if (own(open, command)) return ok(await open[command](request));
       if (origin === null || origin === undefined) return fail(CODES.cancelled, 'Origem não identificada.');
-      if ((await sites.get(origin)).allowed === false) {
+      const site = await sites.get(origin);
+      if (site.allowed === false) {
         return fail(CODES.cancelled, 'Este site está bloqueado no Jamegão.');
+      }
+      if (site.preferOfficial) {
+        return fail(CODES.cancelled, 'Neste site a extensão oficial responde.');
       }
       if (!own(guarded, command)) {
         return fail(CODES.unsupported, `O Jamegão não atende o comando "${command}".`);
