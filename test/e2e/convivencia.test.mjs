@@ -97,8 +97,11 @@ test('página já aberta: escolher a oficial cala o Jamegão na mesma página', 
   const popup = await a.abrirPopup();
   const sw = `#sites li[data-origem="${h.origin}"] input.oficial`;
   await popup.waitForSelector(sw);
+  const antes = Number(await popup.$eval('body', (b) => b.dataset.render));
   await popup.click(sw);
-  await popup.waitForFunction((s) => document.querySelector(s)?.checked, {}, sw);
+  // Espera a gravação terminar (o popup redesenha depois de gravar), não só
+  // a caixa marcar, que acontece antes.
+  await popup.waitForFunction((s, n) => Number(document.body.dataset.render) > n && document.querySelector(s)?.checked, {}, sw, antes);
 
   const lista = await a.chamar(page, () => window.listar());
   assert.deepEqual(lista.ok.map((c) => c.subjectName), ['TOKEN FALSO']);

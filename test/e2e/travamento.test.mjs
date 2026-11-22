@@ -59,7 +59,10 @@ test('30 minutos sem uso travam o cofre', async () => {
   await r;
 
   // 31 minutos sem uso.
-  await naExtensao(() => chrome.storage.session.set({ lastUse: Date.now() - 31 * 60000 }));
+  await naExtensao(async () => {
+    await chrome.storage.session.set({ lastUse: Date.now() - 31 * 60000 });
+    await chrome.storage.session.remove('promptRefusals'); // fim da pausa da recusa acima
+  });
   r = assinar();
   j = await janela();
   assert.equal(await j.$eval('#bloco-senha', (e) => e.hidden), false, 'deveria pedir a senha');

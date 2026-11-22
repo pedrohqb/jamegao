@@ -11,7 +11,14 @@
   },
   "content_scripts": [
     {
-      "matches": ["https://esaj.tjsp.jus.br/*"],
+      "matches": [
+        "https://esaj.tjsp.jus.br/*",
+        "https://www2.tjal.jus.br/*",
+        "https://esaj.tjms.jus.br/*",
+        "https://esaj.tjac.jus.br/*",
+        "https://esaj.tjce.jus.br/*",
+        "https://esaj.tjba.jus.br/*"
+      ],
       "js": ["content.js"],
       "run_at": "document_start",
       "all_frames": true

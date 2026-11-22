@@ -1,66 +1,64 @@
 # Pendências da v0.1
 
-Estado em 21/11/2026, 22h45. Ramo `v0.1`. Testes: unidade 127/127; ponta a ponta
-no Chrome 38 testes, com um intermitente (item 9 abaixo). O Firefox nunca foi executado (não havia Firefox no ambiente
-de desenvolvimento).
+Estado em 21/11/2026, 23h40. Ramo `v0.1`. Testes: unidade 138/138; ponta a
+ponta no Chrome 39/39.
 
-A revisão final do ramo inteiro não achou nenhum caminho em que uma página
-obtenha dados do certificado ou uma assinatura sem site autorizado, cofre
-destravado e confirmação. Veredito: pronto para teste manual no Chrome (TJSP);
-não pronto para envio às lojas.
+## Testado por Pedro
 
-## Corrigir antes do envio às lojas (achados da revisão final)
+- Login no e-SAJ do TJSP com a v0.1 no Brave e no Firefox (extensão
+  temporária). Sem extensão oficial, sem componente nativo.
+- Protótipo anterior: login e assinatura no TJSP e no TJAL, Chromium e Firefox.
 
-1. **"Travar agora" não apaga os créditos de assinatura.** Quem trava no meio
-   de um lote e depois digita a senha vê só o pedido de senha, sem a
-   quantidade, e o crédito antigo é gasto. Limpar créditos ao travar e sempre
-   reapresentar o que será assinado.
-2. **TJAL fora do manifesto.** Só `esaj.tjsp.jus.br` está na lista. Falta o
-   endereço do e-SAJ do TJAL (a confirmar com Pedro) e os demais tribunais.
-3. **Confirmação órfã ainda pode ser aprovada depois de vencida.** `answer` e
-   `describe` não conferem a idade do pedido.
-4. **`storage.local` não fica fechado aos scripts de conteúdo.** O
-   `setAccessLevel` provavelmente só vale para `storage.session`. Um processo
-   de página comprometido do e-SAJ leria o sal e o valor de conferência do
-   cofre (o que permite tentar senhas fora do navegador) e poderia zerar o
-   contador de tentativas. As chaves continuam protegidas no IndexedDB. Mover
-   `vaultMeta` e `lockout` para o IndexedDB.
-5. **O desenho diz "chave não exportável", mas o `signHash` precisa exportá-la**
-   para JavaScript. É inevitável sem WebAssembly; corrigir o texto do desenho.
-6. **Janela de confirmação pode ser reaberta em laço** por um site autorizado
-   depois de uma recusa. Pôr uma pausa por origem ou um botão "Bloquear este
-   site" na janela.
-7. **Aceite que falha no meio** pode deixar o site autorizado sem o crédito,
-   e a aba esperando 120 s.
-8. **Teste negativo do script de conteúdo** usa página `data:`; trocar por
-   `127.0.0.1`.
+Falta testar com a v0.1: assinatura de petição real (no Firefox o e-SAJ pode
+assinar pela outra marca, que o login não exercita) e os tribunais além do
+TJSP.
 
-9. **Teste intermitente de convivência** (`convivencia.test.mjs`, "página já
-   aberta: escolher a oficial cala o Jamegão na mesma página"): falhou em 2 de
-   5 execuções. Indício: logo depois de ligar o interruptor, um pedido ainda
-   é respondido pelo Jamegão com a recusa "Neste site a extensão oficial
-   responde", antes da oficial. Causa não confirmada. O Jamegão deveria ficar
-   calado nesse caso, em vez de responder com recusa.
+## Corrigido depois da revisão final (21/11, noite)
+
+1. "Travar agora" apaga os créditos de assinatura, e o cofre travado sempre
+   pede a senha junto com o que será assinado, mesmo que sobre crédito.
+2. Manifesto com os e-SAJ em uso: TJSP (`esaj.tjsp.jus.br`), TJAL
+   (`www2.tjal.jus.br`), TJMS (`esaj.tjms.jus.br`), TJAC
+   (`esaj.tjac.jus.br`), TJCE (`esaj.tjce.jus.br`, plantão) e TJBA
+   (`esaj.tjba.jus.br`). Ficaram fora TJSC e TJAM, que já migraram. Só
+   HTTPS. TJMS, TJAC, TJCE e TJBA não foram testados.
+3. Confirmação vencida (120 s) não pode mais ser aprovada nem exibida.
+4. Sal e conferência do cofre, contador de tentativas e decisões por site
+   saíram de `storage.local` (alcançável pelos scripts de conteúdo) e foram
+   para o IndexedDB da extensão. Instalações antigas migram uma única vez;
+   depois disso `storage.local` nunca mais é lido.
+5. Texto do desenho corrigido: no `signHash` a chave fica em memória do
+   JavaScript durante a assinatura.
+6. Janela de confirmação: botão "Bloquear este site", e depois de uma recusa
+   (ou de fechar a janela) o mesmo site fica 15 s sem poder reabri-la.
+7. Aceite que falha no meio avisa a aba na hora, em vez de deixá-la esperando
+   120 s, e não deixa o site liberado.
+8. Teste negativo do script de conteúdo usa página HTTP real fora do
+   manifesto, em vez de `data:`.
+9. Teste intermitente de convivência: havia uma corrida real. Quando o site
+   passa a preferir a extensão oficial no meio de um pedido, o Jamegão agora
+   fica calado em vez de responder com recusa. O teste também passou a
+   esperar a gravação do interruptor. Passou 5 de 5.
 
 ## Firefox
 
-O suporte foi escrito por leitura da documentação e nunca rodou. Para testar:
+O login manual funcionou. A suíte automática nunca rodou no Firefox (não há
+Firefox no ambiente de desenvolvimento). Para rodar:
 
     BROWSER=firefox FIREFOX_BIN=/caminho/do/firefox npm run e2e
 
-Falha mais provável na primeira execução: o script de conteúdo não ser
-injetado, por falta de concessão de acesso ao site numa instalação temporária.
-
-## Com Pedro (Task 13 do plano)
+## Com Pedro
 
 - Confirmar o identificador do Firefox (hoje provisório:
   `jamegao@pedrohqb.github.io`). É permanente depois do primeiro envio.
-- Informar o endereço do e-SAJ do TJAL e de outros tribunais a incluir.
-- Carregar `ext/` no Chromium e fazer o login no e-SAJ do TJSP.
+- Testar a assinatura de uma petição real (Chromium e Firefox).
+- Abrir a tela de login por certificado em TJMS, TJAC, TJCE ou TJBA, se
+  tiver acesso.
 - Conferir se a tela de login usa `signHash` ou `signData`.
 - Decidir se os dados do certificado podem ser listados com o cofre travado
   (hoje podem, desde que o site esteja autorizado).
+- Envio não listado às lojas, pelo `docs/lojas/roteiro-de-envio.md`.
 
 ## Menores adiados
 
-Estão no registro de execução do plano; nenhum impede o teste manual.
+Estão no registro de execução do plano; nenhum impede o uso.

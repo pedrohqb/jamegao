@@ -59,7 +59,8 @@ export function criarAjudas(h) {
     const page = await h.browser.newPage();
     try {
       await page.goto(h.extUrl('pages/import.html'));
-      return await page.evaluate((k) => chrome.storage.local.get(k), chaves);
+      // Persistente da extensão (IndexedDB, via lib/kv.js), no formato do chrome.storage.get.
+      return await page.evaluate((k) => import('/lib/kv.js').then(async ({ browserKv }) => { const kv = browserKv().local; const out = {}; for (const c of [].concat(k)) { const v = await kv.get(c); if (v !== undefined) out[c] = v; } return out; }), chaves);
     } finally { await page.close(); }
   }
 
@@ -83,6 +84,14 @@ export function criarAjudas(h) {
     await page.close();
   }
 
+  // Acaba com a pausa que uma recusa impõe ao site (lib/prompts.js).
+  async function fimDaPausa() {
+    const page = await h.browser.newPage();
+    await page.goto(h.extUrl('pages/import.html'));
+    await page.evaluate(() => chrome.storage.session.remove('promptRefusals'));
+    await page.close();
+  }
+
   async function fecharPaginasDeTeste() {
     for (const p of await h.browser.pages()) {
       if (p.url().includes('pages/confirm.html') || p.url().includes('pages/popup.html') || p.url().includes('lib=')) {
@@ -91,5 +100,5 @@ export function criarAjudas(h) {
     }
   }
 
-  return { confirmPages, janela, texto, semJanela, responder, chamar, abrirPagina, login, abrirPopup, estadoDo, lerStorage, limparTudo, limparSessao, fecharPaginasDeTeste };
+  return { confirmPages, janela, texto, semJanela, responder, chamar, abrirPagina, login, abrirPopup, estadoDo, lerStorage, limparTudo, limparSessao, fimDaPausa, fecharPaginasDeTeste };
 }

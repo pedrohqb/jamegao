@@ -126,7 +126,7 @@ Itens marcados **(decisão de Pedro)** foram ditos por ele. Os marcados
 |---|---|
 | Script de conteúdo | Anuncia as duas marcas e repassa pedidos e respostas. Não vê chave nem certificado. |
 | Fundo (service worker / página de fundo) | Atende os comandos, guarda a regra de autorização, assina. |
-| Cofre | Guarda certificados e chaves cifradas no IndexedDB; mantém a chave do cofre destravada só em `storage.session`. |
+| Cofre | Guarda no IndexedDB os certificados, as chaves cifradas, o sal e a conferência do cofre, o contador de tentativas e as decisões por site (não em `storage.local`, que os scripts de conteúdo alcançam); mantém a chave do cofre destravada só em `storage.session`. |
 | Janela de importação | Lê o PFX com a forge, monta os dados do certificado, cria ou usa o cofre. |
 | Janela de confirmação | Pede senha se o cofre estiver travado e confirma cada assinatura ou lote. |
 | Popup do ícone | Estado (travado/destravado), certificados, sites, travar agora. |
@@ -179,8 +179,13 @@ Jamegão.
   que o navegador as grava em claro).
 - Destravar: a senha deriva a chave do cofre, que fica em `storage.session`
   (só em memória, some ao fechar o navegador, inacessível a scripts de
-  conteúdo). A cada assinatura, o fundo decifra o PKCS#8, importa uma
-  `CryptoKey` não exportável para aquele uso e descarta as referências.
+  conteúdo). A cada assinatura, o fundo decifra o PKCS#8 e o usa só naquela
+  operação, zerando os bytes ao final. No `signData` a chave entra no
+  WebCrypto; no `signHash` (assinatura RSA de um resumo já pronto, que o
+  WebCrypto não oferece) a conta é feita em JavaScript, com cegamento, e por
+  isso a chave fica em memória do JavaScript durante a assinatura. Sem
+  WebAssembly ou componente nativo isso é inevitável; a proteção é a chave
+  só existir decifrada no fundo da extensão, por instantes.
 - Travamento automático após 30 minutos sem uso, por alarme, e botão "travar
   agora". Fechar o navegador trava.
 - Senha errada: espera crescente entre tentativas. Sem recuperação de senha:

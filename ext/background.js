@@ -58,6 +58,7 @@ async function atenderPedido(msg, sender) {
     origin: senderOrigin(sender), tabId: sender.tab.id, frameId: sender.frameId ?? 0, command: msg.command,
   });
   if (opened.busy) return fail(CODES.cancelled, 'Há uma confirmação pendente nesta aba.');
+  if (opened.paused) return fail(CODES.cancelled, 'Pedido recusado há pouco. Tente de novo em alguns segundos.');
   try {
     const win = await api.windows.create({
       url: api.runtime.getURL('pages/confirm.html') + '?id=' + encodeURIComponent(opened.id),
@@ -84,7 +85,7 @@ async function promptMessage(msg, sender) {
   }
   if (!fromConfirmPage(sender)) return null; // describe/answer: só a janela de confirmação
   if (msg.type === 'prompt-describe') return prompts.describe(String(msg.id));
-  return prompts.answer(String(msg.id), { allow: msg.allow === true, password: msg.password });
+  return prompts.answer(String(msg.id), { allow: msg.allow === true, password: msg.password, block: msg.block === true });
 }
 
 // Anúncio e convivência com a extensão oficial: valem só a origem informada

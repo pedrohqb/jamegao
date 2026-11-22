@@ -41,7 +41,12 @@ for (const lib of SDKS) {
 test('página fora dos domínios do manifesto não recebe o marcador', async () => {
   const page = await h.browser.newPage();
   try {
-    await page.goto('data:text/html,<html><head></head><body>x</body></html>');
+    // Mesmo servidor e mesma página de teste, num nome que o manifesto de
+    // teste não cobre (*.localhost cai no 127.0.0.1, mas não casa com localhost/*).
+    const fora = h.origin.replace(/\/\/(localhost|127\.0\.0\.1)/, '//fora.localhost');
+    assert.notEqual(fora, h.origin);
+    await page.goto(`${fora}/?lib=lacuna-2.20.0.js`);
+    await new Promise((r) => setTimeout(r, 500));
     assert.equal(await page.evaluate(() => document.querySelectorAll('meta[data-jamegao]').length), 0);
   } finally {
     await page.close();

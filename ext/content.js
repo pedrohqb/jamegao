@@ -166,6 +166,7 @@
       request: message.request ?? null,
     });
     if (result && result.pending === true && typeof result.promptId === 'string') return result;
+    if (result && result.silent === true) return result;
     if (!result || typeof result.success !== 'boolean') {
       return failure('Jamegão: resposta inválida da extensão');
     }
@@ -190,6 +191,8 @@
         }
         result = outcome;
       }
+      // O site passou a preferir a extensão oficial: some e não responde.
+      if (result && result.silent === true) { retract(); return; }
       if (!result || typeof result.success !== 'boolean') {
         result = failure('Jamegão: resposta inválida da extensão');
       }

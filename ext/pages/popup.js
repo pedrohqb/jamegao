@@ -47,6 +47,7 @@ async function revogar(origin) {
   await credits.clear();
 }
 
+let renderizacoes = 0;
 async function render() {
   const lista = await certs.list();
   const unlocked = lista.length > 0 && (await vault.isUnlocked());
@@ -96,9 +97,13 @@ async function render() {
       : button('bloquear', 'Bloquear', async () => { await sites.setAllowed(origin, false); await credits.clear(); }));
     $('sites').append(li);
   }
+  // Contador de renderizações concluídas (os testes esperam por ele).
+  document.body.dataset.render = String(++renderizacoes);
 }
 
-$('travar').addEventListener('click', () => vault.lock().then(render));
+// Travar também descarta os créditos: um lote interrompido recomeça pedindo
+// a senha junto com o que será assinado.
+$('travar').addEventListener('click', () => vault.lock().then(() => credits.clear()).then(render));
 $('importar').addEventListener('click', () => {
   api.tabs.create({ url: api.runtime.getURL('pages/import.html') });
 });

@@ -36,7 +36,10 @@ const zerar = async () => {
   const page = await h.browser.newPage();
   await page.goto(h.extUrl('pages/import.html'));
   await page.evaluate(async () => {
-    await chrome.storage.local.remove(['sites', 'lockout']);
+    const { browserKv } = await import('/lib/kv.js');
+    const kv = browserKv().local;
+    await kv.remove('sites');
+    await kv.remove('lockout');
     await chrome.storage.session.clear();
   });
   await page.close();
@@ -90,7 +93,7 @@ const sitesGravados = async () => {
   const page = await h.browser.newPage();
   try {
     await page.goto(h.extUrl('pages/import.html'));
-    return (await page.evaluate(() => chrome.storage.local.get('sites'))).sites ?? {};
+    return (await page.evaluate(() => import('/lib/kv.js').then(({ browserKv }) => browserKv().local.get('sites')))) ?? {};
   } finally { await page.close(); }
 };
 
@@ -155,6 +158,7 @@ test('recusar devolve cancelamento e não bloqueia o site', async () => {
   await responder(j, '#recusar');
   assert.match((await r).err, /cancelad/);
   assert.deepEqual(await sitesGravados(), {});
+  await zerar(); // a recusa pausa o site por alguns segundos (testado no popup)
   r = comJanela(page, () => page.evaluate(() => window.listar()));
   j = await janela(); // abre de novo
   await responder(j, '#confirmar');
@@ -168,6 +172,7 @@ test('fechar a janela equivale a recusar', async () => {
   await j.close();
   assert.match((await r).err, /cancelad/);
   assert.deepEqual(await sitesGravados(), {});
+  await zerar();
   r = comJanela(page, () => page.evaluate(() => window.listar()));
   await responder(await janela(), '#confirmar');
   assert.equal((await r).ok.length, 1);

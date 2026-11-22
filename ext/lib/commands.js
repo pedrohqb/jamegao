@@ -49,7 +49,9 @@ export function createCommands({ vault, certs, sites, credits, platformOs }) {
     const needs = {};
     if (!(await siteOk(origin))) needs.site = true;
     if (!(await vault.isUnlocked())) needs.unlock = true;
-    if (!(await credits.has(origin, thumbprint))) needs.sign = { count: 1, thumbprint };
+    // Cofre travado: o crédito que sobrou não basta; quem digita a senha vê
+    // de novo o que vai assinar (e o crédito antigo é substituído).
+    if (needs.unlock || !(await credits.has(origin, thumbprint))) needs.sign = { count: 1, thumbprint };
     if (Object.keys(needs).length) return { needs };
     if (!(await credits.consume(origin, thumbprint))) {
       return { needs: { sign: { count: 1, thumbprint } } };
@@ -107,9 +109,9 @@ export function createCommands({ vault, certs, sites, credits, platformOs }) {
       if (site.allowed === false) {
         return fail(CODES.cancelled, 'Este site está bloqueado no Jamegão.');
       }
-      if (site.preferOfficial) {
-        return fail(CODES.cancelled, 'Neste site a extensão oficial responde.');
-      }
+      // Quem prefere a oficial: o Jamegão não responde nada, nem recusa, para
+      // não chegar à página antes da resposta da oficial.
+      if (site.preferOfficial) return { silent: true };
       if (!own(guarded, command)) {
         return fail(CODES.unsupported, `O Jamegão não atende o comando "${command}".`);
       }

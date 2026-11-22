@@ -6,6 +6,9 @@ import { CODES, fail, ok } from './protocol.js';
 import { createExclusive } from './exclusive.js';
 
 export const PROMPT_TIMEOUT_MS = 120000;
+// Depois que o usuário recusa, o mesmo site fica este tempo sem poder abrir
+// outra janela (evita que um site reabra a confirmação em laço).
+export const REFUSAL_PAUSE_MS = 15000;
 
 const exclusive = createExclusive('jamegao-prompts');
 
@@ -15,19 +18,32 @@ export function createPrompts({ session, vault, certs, sites, credits, notify, c
   const readAll = () => session.get('prompts', {});
   const writeAll = (all) => session.set('prompts', all);
 
+  // A aba é avisada mesmo que a gravação falhe: não pode ficar esperando.
   async function finish(rec, outcome) {
-    const all = await readAll();
-    delete all[rec.id];
-    await writeAll(all);
+    try {
+      const all = await readAll();
+      delete all[rec.id];
+      await writeAll(all);
+    } catch { /* o registro vence sozinho */ }
     try { await notify(rec.tabId, rec.frameId, { type: 'prompt-resolved', id: rec.id, outcome }); } catch { /* aba fechada */ }
     if (rec.windowId !== undefined && closeWindow) {
       try { await closeWindow(rec.windowId); } catch { /* janela já fechada */ }
     }
   }
 
-  async function refuse(rec) {
+  // byUser: o usuário recusou ou fechou a janela (não a aba nem o prazo).
+  async function refuse(rec, { byUser = false } = {}) {
+    if (byUser) {
+      try {
+        const pausas = await session.get('promptRefusals', {});
+        pausas[rec.origin] = now();
+        await session.set('promptRefusals', pausas);
+      } catch { /* sem pausa; segue recusando */ }
+    }
     await finish(rec, CANCELLED());
   }
+
+  const expired = (rec) => now() - rec.createdAt > PROMPT_TIMEOUT_MS;
 
   return {
     open: (needs, { origin, tabId, frameId, command }) => exclusive(async () => {
@@ -37,6 +53,8 @@ export function createPrompts({ session, vault, certs, sites, credits, notify, c
       }
       const all = await readAll();
       if (Object.values(all).some((p) => p.tabId === tabId)) return { busy: true };
+      const recusado = (await session.get('promptRefusals', {}))[origin];
+      if (typeof recusado === 'number' && now() - recusado < REFUSAL_PAUSE_MS) return { paused: true };
       // Titular e validade vêm do certificado guardado, nunca da página.
       let subject = null;
       let validityEnd = null;
@@ -59,34 +77,59 @@ export function createPrompts({ session, vault, certs, sites, credits, notify, c
       return true;
     }),
 
-    async describe(id) {
+    describe: (id) => exclusive(async () => {
       const rec = (await readAll())[id];
       if (!rec) return null;
+      // A aba já desistiu (120 s): a janela não pode mais ser aprovada.
+      if (expired(rec)) {
+        await refuse(rec);
+        return null;
+      }
       return { origin: rec.origin, needs: rec.needs, subject: rec.subject, validityEnd: rec.validityEnd };
-    },
+    }),
 
-    answer: (id, { allow, password } = {}) => exclusive(async () => {
+    // block: o usuário pediu "Bloquear este site" (recusa e bloqueia).
+    answer: (id, { allow, password, block } = {}) => exclusive(async () => {
       const rec = (await readAll())[id];
       if (!rec) return { done: true };
-      if (allow !== true) {
+      if (expired(rec)) {
         await refuse(rec);
+        return { done: true, expired: true };
+      }
+      if (block === true) {
+        try {
+          await sites.setAllowed(rec.origin, false);
+          await credits.clear();
+        } catch { /* a recusa vale mesmo assim */ }
+        await refuse(rec, { byUser: true });
         return { done: true };
       }
-      if (rec.needs.unlock && !(await vault.isUnlocked())) {
-        const r = await vault.unlock(typeof password === 'string' ? password : '');
-        if (!r.ok) return { error: 'senha', waitMs: r.waitMs };
+      if (allow !== true) {
+        await refuse(rec, { byUser: true });
+        return { done: true };
       }
-      if (rec.needs.site) await sites.setAllowed(rec.origin, true);
-      if (rec.needs.sign) await credits.grant(rec.origin, rec.needs.sign.thumbprint, rec.needs.sign.count);
+      try {
+        if (rec.needs.unlock && !(await vault.isUnlocked())) {
+          const r = await vault.unlock(typeof password === 'string' ? password : '');
+          if (!r.ok) return { error: 'senha', waitMs: r.waitMs };
+        }
+        if (rec.needs.sign) await credits.grant(rec.origin, rec.needs.sign.thumbprint, rec.needs.sign.count);
+        if (rec.needs.site) await sites.setAllowed(rec.origin, true);
+      } catch {
+        // Falhou no meio: a aba recebe a falha agora, em vez de esperar 120 s.
+        await finish(rec, fail(CODES.internal, 'Não foi possível registrar a autorização. Tente de novo.'));
+        return { done: true, error: 'interno' };
+      }
       await finish(rec, rec.command === 'preauthorizeSignatures' ? ok(null) : 'retry');
       return { done: true };
     }),
 
     // Equivale a recusar. Se tabId vier, só vale para o pedido daquela aba.
+    // Sem tabId, vem da janela de confirmação: conta como recusa do usuário.
     abandon: (id, { tabId } = {}) => exclusive(async () => {
       const rec = (await readAll())[id];
       if (!rec || (tabId !== undefined && rec.tabId !== tabId)) return;
-      await refuse(rec);
+      await refuse(rec, { byUser: tabId === undefined });
     }),
 
     tabClosed: (tabId) => exclusive(async () => {
@@ -95,7 +138,7 @@ export function createPrompts({ session, vault, certs, sites, credits, notify, c
 
     closedWindow: (windowId) => exclusive(async () => {
       const rec = Object.values(await readAll()).find((p) => p.windowId === windowId);
-      if (rec) await refuse({ ...rec, windowId: undefined });
+      if (rec) await refuse({ ...rec, windowId: undefined }, { byUser: true });
     }),
   };
 }

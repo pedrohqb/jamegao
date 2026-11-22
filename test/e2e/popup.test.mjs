@@ -49,10 +49,13 @@ test('travar agora', async () => {
   await popup.click('#travar');
   await popup.waitForSelector('#estado[data-estado="travado"]');
   assert.equal(await popup.$eval('#travar', (e) => e.hidden), true);
+  // Travar descarta os créditos que sobraram do lote.
+  assert.equal((await popup.evaluate(() => chrome.storage.session.get('credits'))).credits, undefined);
 
   r = a.chamar(page, (t, d) => window.assinarDados(t, d, 'SHA-256'), T, dados('x'));
   const j = await a.janela();
   assert.equal(await j.$eval('#bloco-senha', (e) => e.hidden), false); // pede a senha
+  assert.equal(await j.$eval('#assinatura', (e) => e.hidden), false); // e mostra o que será assinado
   await a.responder(j, '#recusar');
   assert.match((await r).err, /cancelad/);
 });
@@ -113,7 +116,7 @@ test('esqueci a senha apaga cofre e certificados após confirmação', async () 
   assert.notEqual(await a.estadoDo(popup), 'sem-certificado');
   assert.ok((await a.lerStorage('vaultMeta')).vaultMeta);
 
-  await popup.evaluate(() => chrome.storage.local.set({ lockout: { failures: 4, until: Date.now() + 5000 } }));
+  await popup.evaluate(() => import('/lib/kv.js').then(({ browserKv }) => browserKv().local.set('lockout', { failures: 4, until: Date.now() + 5000 })));
   await popup.evaluate(() => chrome.storage.session.set({ credits: { x: { origin: 'o', thumbprint: 't', remaining: 2, expires: Date.now() + 100000 } } }));
   await popup.click('#apagar-tudo');
   await popup.waitForSelector('#estado[data-estado="sem-certificado"]');
@@ -149,5 +152,27 @@ test('certificado vencido e a 10 dias do vencimento', { timeout: 90000 }, async 
     assert.match(await j.$eval('#vencimento', (e) => (e.hidden ? '' : e.textContent)), esperado, nome);
     await a.responder(j, '#recusar');
     assert.match((await r).err, /cancelad/);
+    await a.fimDaPausa();
   }
+});
+
+test('"Bloquear este site" na janela bloqueia o site, e recusar pausa novas janelas', async () => {
+  const page = await a.abrirPagina(h.origin, LIB);
+  await a.login(page);
+  let r = a.chamar(page, (t) => window.preautorizar(t, 2), T);
+  await a.responder(await a.janela(), '#recusar');
+  assert.match((await r).err, /cancelad/);
+  // Logo depois da recusa, o site não consegue reabrir a janela.
+  r = await a.chamar(page, (t) => window.preautorizar(t, 2), T);
+  assert.match(r.err, /recusado há pouco/);
+  await a.semJanela(300);
+
+  await a.limparSessao(); // fim da pausa
+  r = a.chamar(page, (t) => window.preautorizar(t, 2), T);
+  await a.responder(await a.janela(), '#bloquear');
+  assert.match((await r).err, /cancelad/);
+  await a.limparSessao();
+  r = await a.chamar(page, () => window.listar());
+  assert.match(r.err, /bloqueado/);
+  await a.semJanela(300);
 });

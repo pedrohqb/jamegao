@@ -3,7 +3,8 @@ import { test, before } from 'node:test';
 import assert from 'node:assert/strict';
 import fs from 'node:fs';
 import { createRequire } from 'node:module';
-import { createPrompts } from '../../ext/lib/prompts.js';
+import { createPrompts, REFUSAL_PAUSE_MS } from '../../ext/lib/prompts.js';
+import { CODES } from '../../ext/lib/protocol.js';
 import { createVault } from '../../ext/lib/vault.js';
 import { createCerts } from '../../ext/lib/certs.js';
 import { createSites } from '../../ext/lib/sites.js';
@@ -124,6 +125,7 @@ test('segunda abertura na mesma aba devolve busy; outra aba abre', async () => {
   assert.deepEqual(await prompts.open(full(), ctx({ frameId: 3 })), { busy: true });
   assert.ok((await prompts.open(full(), ctx({ tabId: 8 }))).id);
   await prompts.answer(a.id, { allow: false });
+  clock.advance(REFUSAL_PAUSE_MS); // a recusa pausa o site
   assert.ok((await prompts.open(full(), ctx())).id);
 });
 
@@ -135,6 +137,7 @@ test('closedWindow e abandon equivalem a recusar', async () => {
   assert.equal(sent.length, 1);
   assert.equal(sent[0].msg.outcome.exception.code, 'user_cancelled');
   assert.equal(await prompts.describe(a.id), null);
+  clock.advance(REFUSAL_PAUSE_MS);
   const b = await prompts.open(full(), ctx());
   await prompts.abandon(b.id);
   assert.equal(sent.length, 2);
@@ -195,4 +198,79 @@ test('tabClosed recusa só o pedido daquela aba', async () => {
   assert.equal(await prompts.describe(a.id), null);
   assert.notEqual(await prompts.describe(b.id), null);
   assert.ok((await prompts.open(full(), ctx())).id);
+});
+
+test('confirmação vencida (120 s) não pode mais ser aprovada nem descrita', async () => {
+  const { PROMPT_TIMEOUT_MS } = await import('../../ext/lib/prompts.js');
+  await setup();
+  const a = await prompts.open(full(), ctx());
+  clock.advance(PROMPT_TIMEOUT_MS + 1);
+  assert.deepEqual(await prompts.answer(a.id, { allow: true, password: PW }), { done: true, expired: true });
+  assert.equal((await sites.get(O)).allowed, undefined);
+  assert.equal(await credits.has(O, T), false);
+  assert.equal(await vault.isUnlocked(), false);
+  assert.equal(sent[0].msg.outcome.exception.code, 'user_cancelled');
+
+  const b = await prompts.open(full(), ctx());
+  clock.advance(PROMPT_TIMEOUT_MS + 1);
+  assert.equal(await prompts.describe(b.id), null);
+  assert.equal((await prompts.answer(b.id, { allow: true, password: PW })).done, true);
+  assert.equal(await credits.has(O, T), false);
+});
+
+test('depois de uma recusa, o mesmo site espera a pausa para abrir outra janela', async () => {
+  await setup();
+  const a = await prompts.open(full(), ctx());
+  await prompts.answer(a.id, { allow: false });
+  assert.deepEqual(await prompts.open(full(), ctx()), { paused: true });
+  assert.ok((await prompts.open(full(), ctx({ origin: 'https://outro.jus.br', tabId: 9 }))).id); // outro site, não
+  clock.advance(REFUSAL_PAUSE_MS);
+  assert.ok((await prompts.open(full(), ctx())).id);
+});
+
+test('fechar a janela também pausa; a aba sair ou o prazo vencer, não', async () => {
+  await setup();
+  const a = await prompts.open(full(), ctx());
+  await prompts.setWindow(a.id, 33);
+  await prompts.closedWindow(33);
+  assert.deepEqual(await prompts.open(full(), ctx()), { paused: true });
+
+  await setup();
+  const b = await prompts.open(full(), ctx());
+  await prompts.abandon(b.id, { tabId: 7 }); // a página saiu
+  const c = await prompts.open(full(), ctx());
+  assert.ok(c.id);
+  await prompts.tabClosed(7);
+  assert.ok((await prompts.open(full(), ctx())).id);
+});
+
+test('"Bloquear este site" recusa, bloqueia o site e apaga créditos', async () => {
+  await setup({ unlocked: true });
+  await credits.grant(O, T, 4);
+  const { id } = await prompts.open(full(), ctx());
+  assert.deepEqual(await prompts.answer(id, { allow: true, block: true, password: PW }), { done: true });
+  assert.equal((await sites.get(O)).allowed, false);
+  assert.equal(await credits.has(O, T), false);
+  assert.equal(sent[0].msg.outcome.exception.code, 'user_cancelled');
+});
+
+test('aceite que falha no meio avisa a aba na hora e não deixa o site liberado', async () => {
+  await setup({ unlocked: true });
+  credits.grant = async () => { throw new Error('quota'); };
+  const { id } = await prompts.open(full(), ctx());
+  assert.deepEqual(await prompts.answer(id, { allow: true }), { done: true, error: 'interno' });
+  assert.equal(sent.length, 1);
+  assert.equal(sent[0].msg.outcome.exception.code, CODES.internal);
+  assert.equal((await sites.get(O)).allowed, undefined);
+  assert.equal(await prompts.describe(id), null);
+});
+
+test('a aba é avisada mesmo se a gravação do desfecho falhar', async () => {
+  await setup({ unlocked: true });
+  const { id } = await prompts.open(full(), ctx());
+  const set = kv.session.set;
+  kv.session.set = async (k, v) => { if (k === 'prompts') throw new Error('falhou'); return set(k, v); };
+  await prompts.answer(id, { allow: true });
+  assert.equal(sent.length, 1);
+  assert.equal(sent[0].msg.outcome, 'retry');
 });

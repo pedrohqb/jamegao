@@ -38,18 +38,20 @@ async function init() {
   }
 }
 
-async function responder(allow) {
+const botoes = (disabled) => { for (const b of ['confirmar', 'recusar', 'bloquear']) $(b).disabled = disabled; };
+
+async function responder(allow, block = false) {
   answering = true;
-  $('confirmar').disabled = $('recusar').disabled = true;
+  botoes(true);
   try {
-    const r = await send({ type: 'prompt-answer', allow, password: allow ? $('senha').value : undefined });
+    const r = await send({ type: 'prompt-answer', allow, block, password: allow ? $('senha').value : undefined });
     if (r && r.error === 'senha') {
       const espera = r.waitMs > 0 ? ` Aguarde ${Math.ceil(r.waitMs / 1000)} s para tentar de novo.` : '';
       status('erro', 'Senha do cofre incorreta.' + espera);
       $('senha').value = '';
       $('senha').focus();
       answering = false;
-      $('confirmar').disabled = $('recusar').disabled = false;
+      botoes(false);
       return;
     }
     $('senha').value = '';
@@ -57,7 +59,7 @@ async function responder(allow) {
   } catch {
     status('erro', 'Falha ao falar com a extensão.');
     answering = false;
-    $('confirmar').disabled = $('recusar').disabled = false;
+    botoes(false);
   }
 }
 
@@ -66,6 +68,7 @@ $('confirmar').disabled = true;
 setTimeout(() => { if (!answering) $('confirmar').disabled = false; }, 500);
 $('confirmar').addEventListener('click', () => responder(true));
 $('recusar').addEventListener('click', () => responder(false));
+$('bloquear').addEventListener('click', () => responder(false, true));
 $('senha').addEventListener('keydown', (e) => { if (e.key === 'Enter' && !$('confirmar').disabled) responder(true); });
 // Fechar a janela sem responder equivale a recusar.
 window.addEventListener('pagehide', () => {

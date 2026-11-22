@@ -19,7 +19,7 @@ Textos prontos: nome, resumo e descrição longa em `docs/lojas/descricao.md`; p
    - Finalidade única: "Assinar documentos nos sites do e-SAJ com certificado digital A1 guardado no próprio navegador, sem instalar programa."
    - Justificativa da permissão `storage`: "Guarda no perfil do navegador os certificados A1 importados pelo usuário, com a chave cifrada pela senha do cofre, e as configurações da extensão. Nada é enviado ao desenvolvedor nem a terceiros."
    - Justificativa da permissão `alarms`: "Agenda o bloqueio automático do cofre após 30 minutos sem uso."
-   - Justificativa do script de conteúdo (hosts `https://esaj.tjsp.jus.br/*`): "Necessário para que o site do e-SAJ encontre a extensão e peça a assinatura de documentos. O script só repassa as solicitações de assinatura do próprio site à extensão e não lê nem altera outras páginas."
+   - Justificativa do script de conteúdo (hosts `https://esaj.tjsp.jus.br/*`, `https://www2.tjal.jus.br/*`, `https://esaj.tjms.jus.br/*`, `https://esaj.tjac.jus.br/*`, `https://esaj.tjce.jus.br/*`, `https://esaj.tjba.jus.br/*`): "Necessário para que o site do e-SAJ encontre a extensão e peça a assinatura de documentos. O script só repassa as solicitações de assinatura do próprio site à extensão e não lê nem altera outras páginas."
    - Código remoto: "Não" (todo o código está no pacote).
    - Dados do usuário coletados: nenhum (deixe todas as caixas desmarcadas e marque as três declarações de conformidade).
    - URL da política de privacidade: a do cabeçalho deste roteiro.
@@ -32,7 +32,7 @@ Textos prontos: nome, resumo e descrição longa em `docs/lojas/descricao.md`; p
 2. "Enviar novo complemento" e escolha **"Por conta própria" ("On your own")**: distribuição não listada, em que a Mozilla assina o arquivo e você mesmo divulga o link. Envie o mesmo zip.
 3. Se pedido, indique que não há código-fonte separado (o pacote não usa build nem minificação próprios; `vendor/forge.min.js` é a biblioteca node-forge sem alterações, com licença em `vendor/forge-LICENSE`).
 4. Coleta de dados: "nenhum" (o manifesto já declara `data_collection_permissions: none`).
-5. Notas ao revisor, se houver campo: "Extensão sem servidor próprio e sem conexões de rede: assina localmente com certificado A1 importado pelo usuário. Permissões: storage (certificados e configurações), alarms (bloqueio automático do cofre). Script de conteúdo apenas em esaj.tjsp.jus.br."
+5. Notas ao revisor, se houver campo: "Extensão sem servidor próprio e sem conexões de rede: assina localmente com certificado A1 importado pelo usuário. Permissões: storage (certificados e configurações), alarms (bloqueio automático do cofre). Script de conteúdo apenas nos portais e-SAJ de TJSP, TJAL, TJMS, TJAC, TJCE e TJBA."
 6. **[PEDRO]** Envie. A assinatura de um complemento não listado costuma sair em minutos ou horas; baixe o `.xpi` assinado na página de versões e distribua o arquivo.
 
 ## 3. Depois do envio

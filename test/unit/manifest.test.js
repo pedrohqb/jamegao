@@ -9,6 +9,15 @@ test('manifesto', () => {
   assert.deepEqual([...m.permissions].sort(), ['alarms', 'storage']);
   assert.equal(m.host_permissions, undefined);
   assert.ok(m.content_scripts[0].matches.every((x) => /^https:\/\/[a-z0-9.]+\.jus\.br\/\*$/.test(x)));
+  // Só os e-SAJ em uso (TJSC e TJAM já migraram).
+  assert.deepEqual(m.content_scripts[0].matches, [
+    'https://esaj.tjsp.jus.br/*',
+    'https://www2.tjal.jus.br/*',
+    'https://esaj.tjms.jus.br/*',
+    'https://esaj.tjac.jus.br/*',
+    'https://esaj.tjce.jus.br/*',
+    'https://esaj.tjba.jus.br/*',
+  ]);
   assert.match(m.content_security_policy.extension_pages, /connect-src 'none'/);
   assert.doesNotMatch(m.name + m.description, /websigner|web ?pki|softplan|lacuna/i);
 });

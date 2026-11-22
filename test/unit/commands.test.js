@@ -119,8 +119,12 @@ test('assinar sem crédito pede confirmação de 1', async () => {
 test('cofre travado pede senha', async () => {
   await setup({ unlocked: false });
   await sites.setAllowed(O, true);
-  await credits.grant(O, T, 1);
-  assert.deepEqual(await run('signData', { certificateThumbprint: T, data: 'eA==' }), { needs: { unlock: true } });
+  await credits.grant(O, T, 5);
+  // Mesmo com crédito sobrando, a senha vem junto com o que será assinado.
+  assert.deepEqual(
+    await run('signData', { certificateThumbprint: T, data: 'eA==' }),
+    { needs: { unlock: true, sign: { count: 1, thumbprint: T } } },
+  );
 });
 
 test('faltando tudo, devolve todos os pedidos de uma vez', async () => {
@@ -251,15 +255,13 @@ test('cofre trava entre a conferência e a decifragem: pede senha', async () => 
   assert.deepEqual(r, { needs: { unlock: true, sign: { count: 1, thumbprint: T } } });
 });
 
-test('site que prefere a extensão oficial: recusa tudo, menos a inicialização', async () => {
+test('site que prefere a extensão oficial: fica calado em tudo, menos a inicialização', async () => {
   await setup();
   await sites.setAllowed(O, true);
   await sites.setPreferOfficial(O, true);
-  for (const c of ['listCertificates', 'readCertificate', 'signData', 'preauthorizeSignatures']) {
+  for (const c of ['listCertificates', 'readCertificate', 'signData', 'preauthorizeSignatures', 'inexistente']) {
     const r = await run(c, { certificateThumbprint: T, data: 'eA==', digestAlgorithm: 'SHA-256', signatureCount: 1 });
-    assert.equal(r.success, false, c);
-    assert.equal(r.exception.code, 'user_cancelled', c);
-    assert.match(r.exception.message, /extensão oficial responde/);
+    assert.deepEqual(r, { silent: true }, c);
   }
   assert.equal((await run('getVersion', {})).success, true);
 });

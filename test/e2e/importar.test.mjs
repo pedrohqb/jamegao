@@ -62,6 +62,8 @@ test('primeira importação cria o cofre', async () => {
     assert.equal(r.cls, 'ok', r.texto);
     assert.equal(await itens(page), 1);
     assert.equal(await page.$eval('#senha-cofre-2', (el) => el.hidden), true);
+    // Nada do cofre em storage.local, que os scripts de conteúdo alcançam.
+    assert.deepEqual(await page.evaluate(() => chrome.storage.local.get(null)), {});
   } finally { await page.close(); }
 });
 
@@ -75,7 +77,7 @@ test('senha do PFX errada', async () => {
     for (const id of ['#senha-pfx', '#senha-cofre', '#senha-cofre-2']) {
       assert.equal(await page.$eval(id, (el) => el.value), '', id);
     }
-    assert.deepEqual(await page.evaluate(() => chrome.storage.local.get('vaultMeta')), {});
+    assert.deepEqual(await page.evaluate(() => import('/lib/kv.js').then(async ({ browserKv }) => { const v = await browserKv().local.get('vaultMeta'); return v === undefined ? {} : { vaultMeta: v }; })), {});
   } finally { await page.close(); }
 });
 
@@ -89,7 +91,7 @@ test('senhas do cofre diferentes ou curtas', async () => {
     assert.equal(r.cls, 'erro');
     assert.match(r.texto, /pelo menos 8/);
     assert.equal(await itens(page), 0);
-    const meta = await page.evaluate(() => chrome.storage.local.get('vaultMeta'));
+    const meta = await page.evaluate(() => import('/lib/kv.js').then(async ({ browserKv }) => { const v = await browserKv().local.get('vaultMeta'); return v === undefined ? {} : { vaultMeta: v }; }));
     assert.deepEqual(meta, {});
   } finally { await page.close(); }
 });
