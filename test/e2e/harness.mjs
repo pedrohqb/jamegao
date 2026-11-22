@@ -45,32 +45,89 @@ const startServer = async () => {
   return server;
 };
 
+// UUID fixo da extensão no Firefox (o Firefox sorteia um por instalação; o
+// mapa extensions.webextensions.uuids o fixa para que extUrl seja previsível).
+export const FIREFOX_UUID = '85f92c19-fa19-458c-a644-199f3699eefb';
+
+const geckoId = (dir) => {
+  const m = JSON.parse(fs.readFileSync(path.join(dir, 'manifest.json'), 'utf8'));
+  const id = m.browser_specific_settings?.gecko?.id;
+  if (!id) throw new Error(`${dir}/manifest.json precisa de browser_specific_settings.gecko.id para o Firefox`);
+  return id;
+};
+
+// Abre o navegador com a extensão (e as extras) carregadas. Devolve o
+// navegador e o que muda entre Chrome e Firefox: extUrl e o "esperar a
+// extensão ficar pronta".
+async function abrirNavegador(name, { userDataDir, extras }, extDir) {
+  if (name === 'chrome') {
+    const browser = await puppeteer.launch({
+      executablePath: process.env.CHROME || '/usr/bin/google-chrome',
+      headless: true,
+      ...(userDataDir ? { userDataDir } : {}),
+      args: ['--no-sandbox', `--disable-extensions-except=${[extDir, ...extras].join(',')}`, `--load-extension=${[extDir, ...extras].join(',')}`],
+    });
+    try {
+      // Service worker de background.js = extensão pronta.
+      const sw = await browser.waitForTarget(
+        (t) => t.type() === 'service_worker' && t.url().includes('background.js'),
+        { timeout: 15000 },
+      );
+      const extId = new URL(sw.url()).host;
+      return { browser, extUrl: (p) => `chrome-extension://${extId}/${String(p).replace(/^\//, '')}` };
+    } catch (err) {
+      await browser.close().catch(() => {});
+      throw err;
+    }
+  }
+
+  // Firefox: WebDriver BiDi; extensões entram como temporárias, por
+  // browser.installExtension (equivale a "Carregar extensão temporária").
+  const executablePath = process.env.FIREFOX_BIN;
+  if (!executablePath) {
+    throw new Error('Defina FIREFOX_BIN com o caminho do executável do Firefox (versão 128 ou mais nova), '
+      + 'por exemplo: BROWSER=firefox FIREFOX_BIN=/usr/bin/firefox npm run e2e');
+  }
+  const browser = await puppeteer.launch({
+    browser: 'firefox',
+    protocol: 'webDriverBiDi',
+    executablePath,
+    headless: !process.env.HEADFUL,
+    ...(userDataDir ? { userDataDir } : {}),
+    extraPrefsFirefox: {
+      'extensions.webextensions.uuids': JSON.stringify({ [geckoId(EXT)]: FIREFOX_UUID }),
+    },
+  });
+  try {
+    await browser.installExtension(extDir);
+    for (const extra of extras) await browser.installExtension(extra);
+    return { browser, extUrl: (p) => `moz-extension://${FIREFOX_UUID}/${String(p).replace(/^\//, '')}` };
+  } catch (err) {
+    await browser.close().catch(() => {});
+    throw err;
+  }
+}
+
 export async function launch(name = 'chrome', { userDataDir, extras = [] } = {}) {
-  if (name === 'firefox') throw new Error('Firefox não disponível neste ambiente');
-  if (name !== 'chrome') throw new Error('Navegador desconhecido: ' + name);
+  if (name !== 'chrome' && name !== 'firefox') throw new Error('Navegador desconhecido: ' + name);
 
   const extDir = await makeTestExtension();
   const server = await startServer();
   const origin = `http://localhost:${server.address().port}`;
-  const browser = await puppeteer.launch({
-    executablePath: process.env.CHROME || '/usr/bin/google-chrome',
-    headless: true,
-    ...(userDataDir ? { userDataDir } : {}),
-    args: ['--no-sandbox', `--disable-extensions-except=${[extDir, ...extras].join(',')}`, `--load-extension=${[extDir, ...extras].join(',')}`],
-  });
+  let browser;
+  let extUrl;
   try {
-    const sw = await browser.waitForTarget(
-      (t) => t.type() === 'service_worker' && t.url().includes('background.js'),
-      { timeout: 15000 },
-    );
-    const extId = new URL(sw.url()).host;
-    const extUrl = (p) => `chrome-extension://${extId}/${String(p).replace(/^\//, '')}`;
-
+    ({ browser, extUrl } = await abrirNavegador(name, { userDataDir, extras }, extDir));
+  } catch (err) {
+    server.close();
+    throw err;
+  }
+  try {
     // onInstalled abre pages/import.html; as páginas de teste não querem essa aba extra.
     try {
       const t = await browser.waitForTarget(
         (x) => x.type() === 'page' && x.url().startsWith(extUrl('')) && x.url().includes('import.html'),
-        { timeout: 4000 },
+        { timeout: name === 'firefox' ? 8000 : 4000 },
       );
       await (await t.page()).close();
     } catch {
@@ -109,7 +166,7 @@ export async function launch(name = 'chrome', { userDataDir, extras = [] } = {})
       server.close();
       for (const d of tmpDirs.splice(0)) fs.rmSync(d, { recursive: true, force: true });
     };
-    return { browser, origin, extUrl, waitForExtPage, importPfx, close };
+    return { browser, origin, extUrl, waitForExtPage, importPfx, close, name };
   } catch (err) {
     await browser.close().catch(() => {});
     server.close();

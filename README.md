@@ -19,6 +19,16 @@ npm run unit
 BROWSER=chrome npm run e2e
 ```
 
+## Testar no Firefox
+
+Os testes de ponta a ponta também rodam no Firefox (128 ou mais novo), por WebDriver BiDi, com a extensão instalada como temporária:
+
+```
+BROWSER=firefox FIREFOX_BIN=/caminho/do/firefox npm run e2e
+```
+
+`FIREFOX_BIN` é obrigatório. Para ver a janela, acrescente `HEADFUL=1`. O teste "fundo encerrado no meio do lote" só existe no Chrome (usa o protocolo CDP para parar o service worker) e é pulado no Firefox, onde o fundo é uma página de eventos; o ensaio de rede do fundo também é pulado (as páginas da extensão continuam testadas).
+
 ## Empacotar
 
 ```

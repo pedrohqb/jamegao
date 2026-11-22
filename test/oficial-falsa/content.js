@@ -32,14 +32,29 @@
     listCertificates: () => [cert],
   };
 
-  document.addEventListener(PREFIX + '.RequestEvent', (event) => {
-    const msg = event.detail;
-    if (!msg || typeof msg.requestId !== 'string') return;
+  const answer = (msg) => {
+    if (!msg || typeof msg.requestId !== 'string') return null;
     const fn = Object.prototype.hasOwnProperty.call(answers, msg.command) ? answers[msg.command] : null;
-    const detail = fn
+    return fn
       ? { requestId: msg.requestId, success: true, response: fn() }
       : { requestId: msg.requestId, success: false, exception: { message: 'não atendido', complete: 'não atendido', origin: 'extension', code: 'command_not_supported' } };
-    // Assíncrono, como a extensão real: o SDK só liga o callback depois do envio.
-    setTimeout(() => document.dispatchEvent(new CustomEvent(PREFIX + '.ResponseEvent', { detail })), 20);
+  };
+
+  // Chromium: CustomEvent no document. Assíncrono, como a extensão real: o SDK
+  // só liga o callback depois do envio.
+  document.addEventListener(PREFIX + '.RequestEvent', (event) => {
+    const detail = answer(event.detail);
+    if (!detail) return;
+    // No Firefox, o detail precisa ser clonado para o contexto da página.
+    const visible = typeof cloneInto === 'function' ? cloneInto(detail, window) : detail;
+    setTimeout(() => document.dispatchEvent(new CustomEvent(PREFIX + '.ResponseEvent', { detail: visible })), 20);
+  });
+
+  // Firefox: o SDK usa window.postMessage em vez de CustomEvent.
+  window.addEventListener('message', (event) => {
+    if (event.source !== window || !event.data || event.data.port !== PREFIX + '.RequestEvent') return;
+    const message = answer(event.data.message);
+    if (!message) return;
+    setTimeout(() => window.postMessage({ port: PREFIX + '.ResponseEvent', message }, window.location.origin), 20);
   });
 })();
