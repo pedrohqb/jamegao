@@ -56,7 +56,7 @@ const fx = (n) => path.join(FIX, n);
 test('primeira importação cria o cofre', async () => {
   const page = await abrir();
   try {
-    assert.match(await page.$eval('body', (b) => b.innerText), /nada sai do seu computador/i);
+    assert.match(await page.$eval('body', (b) => b.innerText), /a chave nunca sai do seu computador/i);
     assert.doesNotMatch(await page.$eval('body', (b) => b.innerText), /WebSigner|Web PKI|Softplan|Lacuna/i);
     const r = await importar(page, { arquivo: fx('pf-moderno.pfx'), cofre: 'cofre-forte-1', cofre2: 'cofre-forte-1' });
     assert.equal(r.cls, 'ok', r.texto);
