@@ -5,9 +5,9 @@ import { join, relative, sep } from 'node:path';
 import { createHash } from 'node:crypto';
 import { execFileSync } from 'node:child_process';
 import { inflateRawSync } from 'node:zlib';
-import { tmpdir } from 'node:os';
+import { fileURLToPath } from 'node:url';
 
-const raiz = new URL('../../', import.meta.url).pathname;
+const raiz = fileURLToPath(new URL('../../', import.meta.url));
 const ext = join(raiz, 'ext');
 const ler = (f) => readFileSync(join(raiz, f), 'utf8');
 
@@ -36,7 +36,7 @@ function semComentarios(js) {
 }
 
 test('nenhum texto voltado ao usuário cita as marcas', () => {
-  const arquivos = ['ext/manifest.json', 'docs/lojas/descricao.md', 'PRIVACIDADE.md', 'README.md'];
+  const arquivos = ['ext/manifest.json', 'docs/lojas/descricao.md', 'docs/lojas/roteiro-de-envio.md', 'PRIVACIDADE.md', 'README.md'];
   const textos = new Map(arquivos.map((f) => [f, ler(f)]));
   for (const p of listar(ext)) {
     const r = rel(p);

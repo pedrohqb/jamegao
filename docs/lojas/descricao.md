@@ -21,7 +21,7 @@ Pontos importantes:
 - Serve apenas para certificado A1 (arquivo). Não atende token nem cartão.
 - Funciona em Linux, Windows, macOS e ChromeOS.
 - As chaves ficam cifradas com a senha do cofre, no perfil do seu navegador.
-- Nada é enviado para lugar nenhum: a extensão não tem servidor e não coleta dado algum.
+- A extensão não tem servidor e não envia nada ao desenvolvedor nem a terceiros. Só o site do e-SAJ que você autorizou recebe, quando pede, os dados públicos do certificado e as assinaturas que você confirmou.
 - Código aberto, licença GPL-3.0: https://github.com/pedrohqb/jamegao
 
 Guarde sempre a cópia de segurança do seu arquivo PFX. Ao desinstalar a extensão, os certificados guardados no navegador são apagados.
