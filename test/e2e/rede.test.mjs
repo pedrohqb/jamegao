@@ -14,6 +14,11 @@ const novoEspiao = async () => {
     hits.push(`${srv.address().port}${req.url}`);
     res.writeHead(200, { 'access-control-allow-origin': '*' }).end('x');
   });
+  // Sem listener de 'upgrade' o Node não registra WebSocket: loga e derruba.
+  srv.on('upgrade', (req, socket) => {
+    hits.push(`${srv.address().port}${req.url}`);
+    socket.destroy();
+  });
   await new Promise((r) => srv.listen(0, '127.0.0.1', r));
   return srv;
 };
@@ -70,13 +75,17 @@ test('fundo e páginas não conseguem abrir conexão', async () => {
     await comum.goto(`${h.origin}/`);
     for (const [i, b] of bases.entries()) {
       await comum.evaluate((u) => fetch(u, { mode: 'no-cors' }), `${b}/controle-${i}`);
+      await comum.evaluate((u) => { new WebSocket(u).onerror = () => {}; }, `${b.replace('http', 'ws')}/ws-controle-${i}`);
+      assert.equal(await comum.evaluate((u) => navigator.sendBeacon(u, 'x'), `${b}/beacon-controle-${i}`), true);
     }
   } finally {
     await comum.close().catch(() => {});
   }
-  await new Promise((r) => setTimeout(r, 300));
+  await new Promise((r) => setTimeout(r, 1000));
   for (const [i, b] of bases.entries()) {
-    assert.ok(hits.includes(`${new URL(b).port}/controle-${i}`), `espião ${i} não registrou o controle: ${hits}`);
+    for (const c of ['controle', 'ws-controle', 'beacon-controle']) {
+      assert.ok(hits.includes(`${new URL(b).port}/${c}-${i}`), `espião ${i} não registrou ${c}: ${hits}`);
+    }
   }
   hits.length = 0;
 
