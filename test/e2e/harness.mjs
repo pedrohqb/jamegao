@@ -23,7 +23,7 @@ export async function makeTestExtension() {
   fs.cpSync(EXT, dir, { recursive: true });
   const file = path.join(dir, 'manifest.json');
   const manifest = JSON.parse(fs.readFileSync(file, 'utf8'));
-  for (const cs of manifest.content_scripts) cs.matches.push('http://localhost/*');
+  for (const cs of manifest.content_scripts) cs.matches.push('http://localhost/*', 'http://127.0.0.1/*');
   fs.writeFileSync(file, JSON.stringify(manifest, null, 2));
   return dir;
 }
@@ -83,12 +83,31 @@ export async function launch(name = 'chrome', { userDataDir } = {}) {
       return target.page();
     };
 
+    // Importa um PFX pela página de importação (cria o cofre se preciso).
+    const importPfx = async (file, pfxPassword, vaultPassword) => {
+      const page = await browser.newPage();
+      try {
+        await page.goto(extUrl('pages/import.html'));
+        await page.waitForSelector('#importar');
+        await (await page.$('#arquivo')).uploadFile(file);
+        await page.$eval('#senha-pfx', (el, v) => { el.value = v; }, pfxPassword);
+        await page.$eval('#senha-cofre', (el, v) => { el.value = v; }, vaultPassword);
+        await page.$eval('#senha-cofre-2', (el, v) => { el.value = v; }, vaultPassword);
+        await page.click('#importar');
+        await page.waitForSelector('#status.ok, #status.erro');
+        const r = await page.$eval('#status', (el) => ({ cls: el.className, texto: el.textContent }));
+        if (r.cls !== 'ok') throw new Error('importação falhou: ' + r.texto);
+      } finally {
+        await page.close();
+      }
+    };
+
     const close = async () => {
       await browser.close().catch(() => {});
       server.close();
       for (const d of tmpDirs.splice(0)) fs.rmSync(d, { recursive: true, force: true });
     };
-    return { browser, origin, extUrl, waitForExtPage, close };
+    return { browser, origin, extUrl, waitForExtPage, importPfx, close };
   } catch (err) {
     await browser.close().catch(() => {});
     server.close();

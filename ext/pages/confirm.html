@@ -1,0 +1,23 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="utf-8">
+  <title>Confirmação - Jamegão</title>
+  <link rel="stylesheet" href="ui.css">
+</head>
+<body>
+  <h1 id="titulo">Confirmação</h1>
+  <p id="origem"></p>
+  <p id="site" hidden></p>
+  <p id="assinatura" hidden></p>
+  <p id="vencimento" class="aviso" hidden></p>
+  <div id="bloco-senha" hidden>
+    <label for="senha">Senha do cofre</label>
+    <input type="password" id="senha" autocomplete="off">
+  </div>
+  <div id="status" role="status"></div>
+  <button id="confirmar" type="button">Confirmar</button>
+  <button id="recusar" type="button">Recusar</button>
+  <script type="module" src="confirm.js"></script>
+</body>
+</html>
