@@ -65,6 +65,16 @@ Firefox no ambiente de desenvolvimento). Para rodar:
 
     BROWSER=firefox FIREFOX_BIN=/caminho/do/firefox npm run e2e
 
+## Para a próxima versão (0.1.1)
+
+- Validação da Mozilla (22/11): passou, com 4 alertas sem efeito. Para
+  silenciar dois deles, subir `strict_min_version` de 128 para 140 (Firefox)
+  e declarar `gecko_android` mínimo 142, ou excluir o Android: o
+  `data_collection_permissions` só existe a partir dessas versões. Os
+  outros dois são esperados: `background.service_worker` ignorado pelo
+  Firefox (ele usa `background.scripts`) e o construtor `Function` dentro
+  do node-forge.
+
 ## Com Pedro
 
 - Confirmar o identificador do Firefox (hoje provisório:
