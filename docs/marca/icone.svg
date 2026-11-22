@@ -1,0 +1,8 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 128 128" width="128" height="128">
+  <title>Jamegão</title>
+  <rect width="128" height="128" rx="26" fill="#1f3a5f"/>
+  <!-- J manuscrito: haste e gancho -->
+  <path d="M74 24 L74 70 C74 88 64 96 50 96 C42 96 36 92 33 86" fill="none" stroke="#ffffff" stroke-width="13" stroke-linecap="round" stroke-linejoin="round"/>
+  <!-- rubrica: traço ondulado sob a letra -->
+  <path d="M20 106 C42 100 58 112 78 104 C92 98 104 96 112 100" fill="none" stroke="#f2b94b" stroke-width="9" stroke-linecap="round" stroke-linejoin="round"/>
+</svg>
