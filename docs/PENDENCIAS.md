@@ -7,6 +7,7 @@ ponta no Chrome 39/39.
 
 - Login no e-SAJ do TJSP com a v0.1 no Brave e no Firefox (extensão
   temporária). Sem extensão oficial, sem componente nativo.
+- Login no e-SAJ do TJSP no OpenBSD (22/11/2026).
 - Protótipo anterior: login e assinatura no TJSP e no TJAL, Chromium e Firefox.
 
 Falta testar com a v0.1: assinatura de petição real (no Firefox o e-SAJ pode

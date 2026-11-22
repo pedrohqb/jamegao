@@ -24,7 +24,7 @@ O Jamegão é um projeto independente, sem vínculo com a Softplan, com a Lacuna
 
 ### Onde funciona
 
-**Sistemas:** Linux, Windows, macOS (Intel e Apple) e ChromeOS. O que importa é o navegador.
+**Sistemas:** Linux, Windows, macOS (Intel e Apple), ChromeOS e até OpenBSD, onde o login no e-SAJ já foi testado. O que importa é o navegador.
 
 | Navegador | Versão mínima | Como instalar |
 |---|---|---|
@@ -182,7 +182,7 @@ Jamegão is a Firefox and Chromium (Chrome, Edge, Brave) extension that lets Bra
 
 It is an independent project, not affiliated with Softplan, Lacuna Software or the courts. A3 tokens and smart cards are not supported; for those, see the sister project [Tessera](https://github.com/pedrohqb/tessera).
 
-**Works on** Linux, Windows, macOS and ChromeOS, with Firefox 128+ or Chromium-based browsers 121+, on the e-SAJ portals of TJSP, TJAL, TJMS, TJAC, TJCE and TJBA (tested so far on TJSP and TJAL).
+**Works on** Linux, Windows, macOS, ChromeOS and even OpenBSD (e-SAJ login tested), with Firefox 128+ or Chromium-based browsers 121+, on the e-SAJ portals of TJSP, TJAL, TJMS, TJAC, TJCE and TJBA (tested so far on TJSP and TJAL).
 
 **Install.** Firefox: download the Mozilla-signed `.xpi` from the [releases page](https://github.com/pedrohqb/jamegao/releases) and drag it into Firefox; then check in `about:addons` → Jamegão → Permissions that site access is on. Chromium browsers: the Chrome Web Store listing is under review; meanwhile, unzip the `-chromium.zip` from the releases page into a permanent folder and use "Load unpacked" in `chrome://extensions` with developer mode on. Disable the official signing extensions in that profile, or use the per-site "let the official extension answer" switch.
 
