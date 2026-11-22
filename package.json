@@ -7,7 +7,8 @@
   "scripts": {
     "unit": "node --test \"test/unit/**/*.test.js\"",
     "e2e": "node --test \"test/e2e/**/*.test.mjs\"",
-    "preparar": "sh scripts/preparar.sh"
+    "preparar": "sh scripts/preparar.sh",
+    "empacotar": "node scripts/empacotar.mjs"
   },
   "devDependencies": {
     "fake-indexeddb": "*",
