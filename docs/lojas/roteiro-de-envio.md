@@ -32,9 +32,13 @@ Textos prontos: nome, resumo e descrição longa em `docs/lojas/descricao.md`; p
 2. "Enviar novo complemento" e escolha **"Por conta própria" ("On your own")**: distribuição não listada, em que a Mozilla assina o arquivo e você mesmo divulga o link. Envie o mesmo zip.
 3. Se pedido, indique que não há código-fonte separado (o pacote não usa build nem minificação próprios; `vendor/forge.min.js` é a biblioteca node-forge sem alterações, com licença em `vendor/forge-LICENSE`).
 4. Coleta de dados: "nenhum" (o manifesto já declara `data_collection_permissions: none`).
-5. Notas ao revisor, se houver campo: "Extensão sem servidor próprio e sem conexões de rede: assina localmente com certificado A1 importado pelo usuário. Permissões: storage (certificados e configurações), alarms (bloqueio automático do cofre). Script de conteúdo apenas nos portais e-SAJ de TJSP, TJAL, TJMS, TJAC, TJCE e TJBA."
+5. Notas ao revisor, se houver campo: "Extensão sem servidor próprio e sem conexões de rede: assina localmente com certificado A1 importado pelo usuário. Permissões: storage (sessão do cofre destravado) e alarms (bloqueio automático do cofre). Dados persistentes no IndexedDB da extensão. Script de conteúdo apenas nos portais e-SAJ de TJSP, TJAL, TJMS, TJAC, TJCE e TJBA. vendor/forge.min.js é o node-forge 1.4.3 sem alterações. Código: https://github.com/pedrohqb/jamegao"
 6. **[PEDRO]** Envie. A assinatura de um complemento não listado costuma sair em minutos ou horas; baixe o `.xpi` assinado na página de versões e distribua o arquivo.
 
-## 3. Depois do envio
+## 3. Situação
+
+- 22/11/2026: Chrome Web Store, enviada para análise (não listada, publicação automática). addons.mozilla.org, aprovada e assinada.
+
+## 4. Depois do envio
 
 - A cada nova versão: aumente `version` em `ext/manifest.json`, rode `npm run empacotar` e envie o novo zip nas duas lojas.

@@ -67,6 +67,13 @@ Firefox no ambiente de desenvolvimento). Para rodar:
 
 ## Para a próxima versão (0.1.1)
 
+- Atualização automática no Firefox: o `.xpi` distribuído por arquivo só se
+  atualiza sozinho se o manifesto tiver `browser_specific_settings.gecko.update_url`
+  apontando para um arquivo de atualizações (por exemplo, `updates.json`
+  servido pelo GitHub Pages ou pelo próprio repositório, com o link do `.xpi`
+  de cada versão). Precisa estar já na 0.1.1: quem instalar a 0.1.0 terá de
+  atualizar à mão uma vez.
+
 - Validação da Mozilla (22/11): passou, com 4 alertas sem efeito. Para
   silenciar dois deles, subir `strict_min_version` de 128 para 140 (Firefox)
   e declarar `gecko_android` mínimo 142, ou excluir o Android: o
@@ -75,17 +82,27 @@ Firefox no ambiente de desenvolvimento). Para rodar:
   Firefox (ele usa `background.scripts`) e o construtor `Function` dentro
   do node-forge.
 
+## Envio às lojas (22/11/2026)
+
+- Chrome Web Store: enviada para análise, não listada, com publicação
+  automática após a aprovação.
+- addons.mozilla.org: aprovada e assinada no mesmo dia (identificador
+  `jamegao@pedrohqb.github.io`, definitivo). O `.xpi` assinado é idêntico ao
+  zip enviado (a Mozilla só reformata o `manifest.json`); SHA-256
+  `d61d86952f0e62322062f63b67da67428bf9e8cc1defc39e0ef8ff5e414b0841`.
+  Pedro instalou o `.xpi` no Firefox.
+- Release v0.1.0 no GitHub, com o `.xpi` e o zip: a criar por Pedro (a
+  sessão do Claude não pode criar releases).
+
 ## Com Pedro
 
-- Confirmar o identificador do Firefox (hoje provisório:
-  `jamegao@pedrohqb.github.io`). É permanente depois do primeiro envio.
 - Testar a assinatura de uma petição real (Chromium e Firefox).
 - Abrir a tela de login por certificado em TJMS, TJAC, TJCE ou TJBA, se
   tiver acesso.
 - Conferir se a tela de login usa `signHash` ou `signData`.
 - Decidir se os dados do certificado podem ser listados com o cofre travado
   (hoje podem, desde que o site esteja autorizado).
-- Envio não listado às lojas, pelo `docs/lojas/roteiro-de-envio.md`.
+- Quando a Chrome Web Store aprovar, pôr o link no README.
 
 ## Menores adiados
 

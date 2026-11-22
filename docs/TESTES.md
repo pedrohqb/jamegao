@@ -27,6 +27,10 @@ navegador que apaga os dados de uma extensão removida).
 
 **Firefox**
 
+Para a versão publicada, instale o `.xpi` assinado da página de versões do
+GitHub (arraste-o para o Firefox) e pule para o passo 2. Para testar uma
+alteração ainda não publicada:
+
 1. Abra `about:debugging#/runtime/this-firefox` e use "Carregar extensão
    temporária…", escolhendo o `manifest.json`.
 2. Em `about:addons`, abra o Jamegão, vá à aba "Permissões" e ligue o acesso
@@ -34,7 +38,9 @@ navegador que apaga os dados de uma extensão removida).
 3. Importe o PFX: a página abre sozinha na instalação.
 4. Desative as extensões oficiais.
 
-A extensão temporária e o cofre somem quando o Firefox fecha. É normal.
+A extensão temporária e o cofre somem quando o Firefox fecha. É normal. O
+`.xpi` assinado tem o mesmo identificador: instalá-lo por cima da temporária
+mantém o cofre.
 
 ### Roteiro
 

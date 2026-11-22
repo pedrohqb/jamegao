@@ -312,8 +312,8 @@ Nenhuma impede começar a implementação.
    quase igual, só JAMELÃO (classe 41, entretenimento, vigente), TAMEGÃO
    (óleos comestíveis, vigente) e XAMEGÃO (classe 41, extinto). A avaliação
    de colidência é de Pedro.
-2. **Identificador do Firefox.** Forma exata a confirmar com Pedro, por ser
-   permanente (sugestão: `jamegao@` seguido de um domínio dele).
+2. **Identificador do Firefox.** `jamegao@pedrohqb.github.io`, confirmado por
+   Pedro e registrado na Mozilla em 22/11/2026 (permanente).
 
 ## 12. Deixado a quem implementar
 
