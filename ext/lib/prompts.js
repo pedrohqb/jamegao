@@ -3,21 +3,11 @@
 // Este módulo não abre janela: quem abre é o fundo, que depois grava o
 // windowId aqui (setWindow) para ligar o fechamento da janela ao pedido.
 import { CODES, fail, ok } from './protocol.js';
+import { createExclusive } from './exclusive.js';
 
 export const PROMPT_TIMEOUT_MS = 120000;
 
-// Serializa as leituras-e-gravações de "prompts" (neste worker e, quando há
-// Web Locks, em qualquer contexto da extensão).
-let queue = Promise.resolve();
-function exclusive(fn) {
-  const run = queue.then(() =>
-    globalThis.navigator?.locks?.request
-      ? globalThis.navigator.locks.request('jamegao-prompts', fn)
-      : fn(),
-  );
-  queue = run.catch(() => {});
-  return run;
-}
+const exclusive = createExclusive('jamegao-prompts');
 
 const CANCELLED = () => fail(CODES.cancelled, 'Operação cancelada.');
 
@@ -41,6 +31,10 @@ export function createPrompts({ session, vault, certs, sites, credits, notify, c
 
   return {
     open: (needs, { origin, tabId, frameId, command }) => exclusive(async () => {
+      // Registros órfãos (worker morto, aba descartada) não podem prender a aba.
+      for (const p of Object.values(await readAll())) {
+        if (now() - p.createdAt > PROMPT_TIMEOUT_MS + 10000) await refuse(p);
+      }
       const all = await readAll();
       if (Object.values(all).some((p) => p.tabId === tabId)) return { busy: true };
       // Titular e validade vêm do certificado guardado, nunca da página.
@@ -93,6 +87,10 @@ export function createPrompts({ session, vault, certs, sites, credits, notify, c
       const rec = (await readAll())[id];
       if (!rec || (tabId !== undefined && rec.tabId !== tabId)) return;
       await refuse(rec);
+    }),
+
+    tabClosed: (tabId) => exclusive(async () => {
+      for (const p of Object.values(await readAll())) if (p.tabId === tabId) await refuse(p);
     }),
 
     closedWindow: (windowId) => exclusive(async () => {

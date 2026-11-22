@@ -120,6 +120,10 @@ api.runtime.onMessage.addListener((msg, sender, sendResponse) => {
   return true;
 });
 
+api.tabs.onRemoved.addListener((tabId) => {
+  modules().prompts.tabClosed(tabId).catch(() => {});
+});
+
 api.windows.onRemoved.addListener((windowId) => {
   modules().prompts.closedWindow(windowId).catch(() => {});
 });

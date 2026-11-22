@@ -22,6 +22,7 @@ export function criarAjudas(h) {
   };
   async function responder(p, seletor, senha) {
     if (senha !== undefined) await p.$eval('#senha', (el, v) => { el.value = v; }, senha);
+    if (seletor === '#confirmar') await p.waitForSelector('#confirmar:not([disabled])');
     const fechou = new Promise((r) => p.once('close', r));
     await p.click(seletor);
     await fechou;

@@ -5,6 +5,7 @@ const api = globalThis.browser ?? globalThis.chrome;
 const $ = (id) => document.getElementById(id);
 const id = new URLSearchParams(location.search).get('id');
 let finished = false;
+let answering = false;
 
 const status = (cls, msg) => {
   $('status').className = cls;
@@ -38,14 +39,16 @@ async function init() {
 }
 
 async function responder(allow) {
+  answering = true;
   $('confirmar').disabled = $('recusar').disabled = true;
   try {
-    const r = await send({ type: 'prompt-answer', allow, password: $('senha').value });
+    const r = await send({ type: 'prompt-answer', allow, password: allow ? $('senha').value : undefined });
     if (r && r.error === 'senha') {
       const espera = r.waitMs > 0 ? ` Aguarde ${Math.ceil(r.waitMs / 1000)} s para tentar de novo.` : '';
       status('erro', 'Senha do cofre incorreta.' + espera);
       $('senha').value = '';
       $('senha').focus();
+      answering = false;
       $('confirmar').disabled = $('recusar').disabled = false;
       return;
     }
@@ -53,13 +56,17 @@ async function responder(allow) {
     shut();
   } catch {
     status('erro', 'Falha ao falar com a extensão.');
+    answering = false;
     $('confirmar').disabled = $('recusar').disabled = false;
   }
 }
 
+// Evita clique duplo logo na abertura.
+$('confirmar').disabled = true;
+setTimeout(() => { if (!answering) $('confirmar').disabled = false; }, 500);
 $('confirmar').addEventListener('click', () => responder(true));
 $('recusar').addEventListener('click', () => responder(false));
-$('senha').addEventListener('keydown', (e) => { if (e.key === 'Enter') responder(true); });
+$('senha').addEventListener('keydown', (e) => { if (e.key === 'Enter' && !$('confirmar').disabled) responder(true); });
 // Fechar a janela sem responder equivale a recusar.
 window.addEventListener('pagehide', () => {
   if (!finished) api.runtime.sendMessage({ type: 'prompt-abandon', id }).catch(() => {});
