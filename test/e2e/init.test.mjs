@@ -1,6 +1,7 @@
 import { test, before, after } from 'node:test';
 import assert from 'node:assert/strict';
-import { launch } from './harness.mjs';
+import path from 'node:path';
+import { launch, FIX } from './harness.mjs';
 
 const FIREFOX_UA = 'Mozilla/5.0 (X11; Linux x86_64; rv:140.0) Gecko/20100101 Firefox/140.0';
 const SDKS = ['softplan-emulado-2.8.0.js', 'lacuna-2.14.8.js', 'lacuna-2.20.0.js'];
@@ -10,7 +11,11 @@ const CANAIS = [
 ];
 
 let h;
-before(async () => { h = await launch(process.env.BROWSER || 'chrome'); });
+// Sem certificado importado o Jamegão não se anuncia.
+before(async () => {
+  h = await launch(process.env.BROWSER || 'chrome');
+  await h.importPfx(path.join(FIX, 'pf-moderno.pfx'), 'senha123', 'cofre-forte-1');
+});
 after(async () => { if (h) await h.close(); });
 
 for (const lib of SDKS) {

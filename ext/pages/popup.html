@@ -1,0 +1,37 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="utf-8">
+  <title>Jamegão</title>
+  <link rel="stylesheet" href="ui.css">
+</head>
+<body class="popup">
+  <h1>Jamegão</h1>
+  <p>Cofre: <strong id="estado"></strong></p>
+  <button id="travar" type="button" hidden>Travar agora</button>
+
+  <div id="aviso-oficial" class="aviso" hidden>
+    <p>A extensão oficial também está presente neste navegador. Nos sites abaixo, marque
+      "Deixar a extensão oficial responder" para que o Jamegão fique quieto.</p>
+  </div>
+
+  <h2>Certificados</h2>
+  <ul id="certs"></ul>
+  <button id="importar" type="button">Importar certificado</button>
+
+  <h2>Sites</h2>
+  <ul id="sites"></ul>
+
+  <h2>Esqueci a senha</h2>
+  <button id="esqueci" type="button">Esqueci a senha do cofre</button>
+  <div id="esqueci-aviso" class="aviso" hidden>
+    <p>Sem a senha não há como recuperar as chaves. Esta ação apaga o cofre, todos os certificados
+      importados e as decisões por site. Você poderá importar os arquivos PFX de novo.</p>
+    <button id="apagar-tudo" type="button">Apagar tudo</button>
+    <button id="cancelar-esqueci" type="button">Cancelar</button>
+  </div>
+  <div id="status" role="status"></div>
+
+  <script type="module" src="popup.js"></script>
+</body>
+</html>
