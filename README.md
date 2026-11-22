@@ -29,7 +29,7 @@ O Jamegão é um projeto independente, sem vínculo com a Softplan, com a Lacuna
 | Navegador | Versão mínima | Como instalar |
 |---|---|---|
 | Firefox | 128 | arquivo `.xpi` assinado pela Mozilla ([abaixo](#firefox)) |
-| Google Chrome, Microsoft Edge, Brave, Chromium | 121 | Chrome Web Store (em análise) ou instalação manual ([abaixo](#chrome-edge-brave-e-chromium)) |
+| Google Chrome, Microsoft Edge, Brave, Chromium | 121 | [Chrome Web Store](https://chromewebstore.google.com/detail/pkmhmpmgojhgogcklacckpideochcggj) ([abaixo](#chrome-edge-brave-e-chromium)) |
 
 **Tribunais:** o Jamegão só atua nos portais e-SAJ abaixo. Nos sistemas que já aceitam o certificado direto no navegador (eproc, Projudi, PJe pelo navegador), ele não é necessário.
 
@@ -56,7 +56,9 @@ Se você usar um desses que ainda não foram testados, conte como foi numa [issu
 
 #### Chrome, Edge, Brave e Chromium
 
-A versão da Chrome Web Store está em análise; quando sair, o link aparece aqui. Até lá, dá para instalar à mão:
+Instale pela **[Chrome Web Store](https://chromewebstore.google.com/detail/pkmhmpmgojhgogcklacckpideochcggj)**, com o botão **Usar no Chrome**. A mesma loja serve ao Edge, ao Brave e ao Chromium (no Edge, aceite "Permitir extensões de outras lojas" quando ele perguntar). A extensão se atualiza sozinha.
+
+Se preferir instalar à mão, sem a loja:
 
 1. Baixe o arquivo `jamegao-<versão>-chromium.zip` da [página de versões](https://github.com/pedrohqb/jamegao/releases) e descompacte-o **numa pasta fixa**, que você não vai apagar nem mover.
 2. Abra `chrome://extensions` (no Edge, `edge://extensions`; no Brave, `brave://extensions`) e ligue o **Modo do desenvolvedor**.
@@ -143,7 +145,6 @@ Detalhes na [política de privacidade](PRIVACIDADE.md).
 
 - **Testar a assinatura de petição** com a versão publicada, no Firefox e no Chromium (no protótipo, já funcionou no TJSP e no TJAL).
 - **Testar TJMS, TJAC, TJCE e TJBA.**
-- **Publicação na Chrome Web Store**, em análise desde 22 de novembro de 2026.
 - **Versão 0.1.1:** atualização automática no Firefox (endereço de atualização no manifesto) e ajustes apontados na validação da Mozilla (veja [pendências](docs/PENDENCIAS.md)).
 
 ---
@@ -184,7 +185,7 @@ It is an independent project, not affiliated with Softplan, Lacuna Software or t
 
 **Works on** Linux, Windows, macOS, ChromeOS and even OpenBSD (e-SAJ login tested), with Firefox 128+ or Chromium-based browsers 121+, on the e-SAJ portals of TJSP, TJAL, TJMS, TJAC, TJCE and TJBA (tested so far on TJSP and TJAL).
 
-**Install.** Firefox: download the Mozilla-signed `.xpi` from the [releases page](https://github.com/pedrohqb/jamegao/releases) and drag it into Firefox; then check in `about:addons` → Jamegão → Permissions that site access is on. Chromium browsers: the Chrome Web Store listing is under review; meanwhile, unzip the `-chromium.zip` from the releases page into a permanent folder and use "Load unpacked" in `chrome://extensions` with developer mode on. Disable the official signing extensions in that profile, or use the per-site "let the official extension answer" switch.
+**Install.** Firefox: download the Mozilla-signed `.xpi` from the [releases page](https://github.com/pedrohqb/jamegao/releases) and drag it into Firefox; then check in `about:addons` → Jamegão → Permissions that site access is on. Chromium browsers (Chrome, Edge, Brave): install from the [Chrome Web Store](https://chromewebstore.google.com/detail/pkmhmpmgojhgogcklacckpideochcggj). Disable the official signing extensions in that profile, or use the per-site "let the official extension answer" switch.
 
 **Use.** Import your PFX once and set a vault password (8+ characters); the private key is stored encrypted in the browser profile. On e-SAJ, choose certificate login as usual. The first time on each court site, Jamegão asks whether the site may see your certificates; every signature, single or batch, needs your confirmation in Jamegão's own window, which shows how many documents will be signed. The vault locks after 30 minutes idle and when the browser closes.
 

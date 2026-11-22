@@ -37,7 +37,7 @@ Textos prontos: nome, resumo e descrição longa em `docs/lojas/descricao.md`; p
 
 ## 3. Situação
 
-- 22/11/2026: Chrome Web Store, enviada para análise (não listada, publicação automática). addons.mozilla.org, aprovada e assinada.
+- 22/11/2026: Chrome Web Store, enviada e publicada no mesmo dia (https://chromewebstore.google.com/detail/pkmhmpmgojhgogcklacckpideochcggj). addons.mozilla.org, aprovada e assinada.
 
 ## 4. Depois do envio
 

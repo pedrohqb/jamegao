@@ -85,8 +85,8 @@ Firefox no ambiente de desenvolvimento). Para rodar:
 
 ## Envio às lojas (22/11/2026)
 
-- Chrome Web Store: enviada para análise, não listada, com publicação
-  automática após a aprovação.
+- Chrome Web Store: enviada para análise e publicada no mesmo dia, cerca de
+  três horas depois: https://chromewebstore.google.com/detail/pkmhmpmgojhgogcklacckpideochcggj
 - addons.mozilla.org: aprovada e assinada no mesmo dia (identificador
   `jamegao@pedrohqb.github.io`, definitivo). O `.xpi` assinado é idêntico ao
   zip enviado (a Mozilla só reformata o `manifest.json`); SHA-256
@@ -103,7 +103,6 @@ Firefox no ambiente de desenvolvimento). Para rodar:
 - Conferir se a tela de login usa `signHash` ou `signData`.
 - Decidir se os dados do certificado podem ser listados com o cofre travado
   (hoje podem, desde que o site esteja autorizado).
-- Quando a Chrome Web Store aprovar, pôr o link no README.
 
 ## Menores adiados
 
