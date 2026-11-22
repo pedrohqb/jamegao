@@ -6,8 +6,10 @@ import { CODES, fail, ok } from './protocol.js';
 import { createExclusive } from './exclusive.js';
 
 export const PROMPT_TIMEOUT_MS = 120000;
-// Depois que o usuário recusa, o mesmo site fica este tempo sem poder abrir
-// outra janela (evita que um site reabra a confirmação em laço).
+// Depois que o usuário recusa (ou deixa o prazo vencer), o mesmo site fica
+// este tempo sem poder abrir outra janela. A tela de login do e-SAJ repete
+// a listagem na hora quando ela falha, até três vezes; sem a pausa, a janela
+// reabriria a cada recusa ou a cada 120 s.
 export const REFUSAL_PAUSE_MS = 15000;
 
 const exclusive = createExclusive('jamegao-prompts');
@@ -31,9 +33,10 @@ export function createPrompts({ session, vault, certs, sites, credits, notify, c
     }
   }
 
-  // byUser: o usuário recusou ou fechou a janela (não a aba nem o prazo).
-  async function refuse(rec, { byUser = false } = {}) {
-    if (byUser) {
+  // pause: o usuário recusou, fechou a janela ou deixou o prazo vencer.
+  // A aba que saiu ou foi fechada não pausa o site.
+  async function refuse(rec, { pause = false } = {}) {
+    if (pause) {
       try {
         const pausas = await session.get('promptRefusals', {});
         pausas[rec.origin] = now();
@@ -44,6 +47,9 @@ export function createPrompts({ session, vault, certs, sites, credits, notify, c
   }
 
   const expired = (rec) => now() - rec.createdAt > PROMPT_TIMEOUT_MS;
+  // A aba desiste aos 120 s contados de um pouco depois da criação; a folga
+  // de 2 s cobre essa diferença.
+  const timedOut = (rec) => now() - rec.createdAt >= PROMPT_TIMEOUT_MS - 2000;
 
   return {
     open: (needs, { origin, tabId, frameId, command }) => exclusive(async () => {
@@ -82,7 +88,7 @@ export function createPrompts({ session, vault, certs, sites, credits, notify, c
       if (!rec) return null;
       // A aba já desistiu (120 s): a janela não pode mais ser aprovada.
       if (expired(rec)) {
-        await refuse(rec);
+        await refuse(rec, { pause: true });
         return null;
       }
       return { origin: rec.origin, needs: rec.needs, subject: rec.subject, validityEnd: rec.validityEnd };
@@ -93,7 +99,7 @@ export function createPrompts({ session, vault, certs, sites, credits, notify, c
       const rec = (await readAll())[id];
       if (!rec) return { done: true };
       if (expired(rec)) {
-        await refuse(rec);
+        await refuse(rec, { pause: true });
         return { done: true, expired: true };
       }
       if (block === true) {
@@ -101,11 +107,11 @@ export function createPrompts({ session, vault, certs, sites, credits, notify, c
           await sites.setAllowed(rec.origin, false);
           await credits.clear();
         } catch { /* a recusa vale mesmo assim */ }
-        await refuse(rec, { byUser: true });
+        await refuse(rec, { pause: true });
         return { done: true };
       }
       if (allow !== true) {
-        await refuse(rec, { byUser: true });
+        await refuse(rec, { pause: true });
         return { done: true };
       }
       try {
@@ -125,11 +131,12 @@ export function createPrompts({ session, vault, certs, sites, credits, notify, c
     }),
 
     // Equivale a recusar. Se tabId vier, só vale para o pedido daquela aba.
-    // Sem tabId, vem da janela de confirmação: conta como recusa do usuário.
+    // Sem tabId, vem da janela de confirmação (o usuário a fechou). Com tabId,
+    // vem da aba: ou o prazo venceu (pausa) ou a página saiu (sem pausa).
     abandon: (id, { tabId } = {}) => exclusive(async () => {
       const rec = (await readAll())[id];
       if (!rec || (tabId !== undefined && rec.tabId !== tabId)) return;
-      await refuse(rec, { byUser: tabId === undefined });
+      await refuse(rec, { pause: tabId === undefined || timedOut(rec) });
     }),
 
     tabClosed: (tabId) => exclusive(async () => {
@@ -138,7 +145,7 @@ export function createPrompts({ session, vault, certs, sites, credits, notify, c
 
     closedWindow: (windowId) => exclusive(async () => {
       const rec = Object.values(await readAll()).find((p) => p.windowId === windowId);
-      if (rec) await refuse({ ...rec, windowId: undefined }, { byUser: true });
+      if (rec) await refuse({ ...rec, windowId: undefined }, { pause: true });
     }),
   };
 }

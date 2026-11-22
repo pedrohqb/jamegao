@@ -1,6 +1,6 @@
 # Pendências da v0.1
 
-Estado em 21/11/2026, 23h40. Ramo `v0.1`. Testes: unidade 138/138; ponta a
+Estado em 22/11/2026, 0h50. Ramo `v0.1`. Testes: unidade 139/139; ponta a
 ponta no Chrome 39/39.
 
 ## Testado por Pedro
@@ -39,6 +39,12 @@ TJSP.
    passa a preferir a extensão oficial no meio de um pedido, o Jamegão agora
    fica calado em vez de responder com recusa. O teste também passou a
    esperar a gravação do interruptor. Passou 5 de 5.
+
+10. Prazo de 120 s vencido no login reabria a janela no Brave: a tela de
+   login do e-SAJ repete a listagem na hora quando ela falha, até três vezes
+   (`carregarCertificadosWebSigner` em `saj-certificado.js`). Agora o prazo
+   vencido conta como recusa e pausa o site por 15 s, e as repetições falham
+   sem abrir janela.
 
 ## Firefox
 

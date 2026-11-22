@@ -274,3 +274,16 @@ test('a aba é avisada mesmo se a gravação do desfecho falhar', async () => {
   assert.equal(sent.length, 1);
   assert.equal(sent[0].msg.outcome, 'retry');
 });
+
+test('prazo vencido na aba pausa o site (o e-SAJ repete a listagem na hora)', async () => {
+  const { PROMPT_TIMEOUT_MS } = await import('../../ext/lib/prompts.js');
+  await setup();
+  const a = await prompts.open({ site: true }, ctx({ command: 'listCertificates' }));
+  clock.advance(PROMPT_TIMEOUT_MS);
+  await prompts.abandon(a.id, { tabId: 7 }); // a aba desistiu aos 120 s
+  assert.equal(sent[0].msg.outcome.exception.code, 'user_cancelled');
+  // As três repetições do e-SAJ falham sem abrir janela.
+  for (let i = 0; i < 3; i++) assert.deepEqual(await prompts.open({ site: true }, ctx()), { paused: true });
+  clock.advance(REFUSAL_PAUSE_MS);
+  assert.ok((await prompts.open({ site: true }, ctx())).id);
+});

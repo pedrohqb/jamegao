@@ -20,6 +20,11 @@ real para protocolar. Nada é protocolado só para testar.
    escolha a pasta `ext` (ou a pasta do zip).
 4. Desative WebSigner e Web PKI nesse perfil.
 
+Para atualizar sem perder cofre, certificados e sites: substitua os arquivos
+**na mesma pasta** e clique em recarregar no cartão. Remover a extensão, ou
+carregá-la de outra pasta, cria uma extensão nova e apaga tudo (é o
+navegador que apaga os dados de uma extensão removida).
+
 **Firefox**
 
 1. Abra `about:debugging#/runtime/this-firefox` e use "Carregar extensão
@@ -62,8 +67,9 @@ no Firefox.
    recusar.
 
 5. **Prazo de 120 s.** Peça o login e não responda a janela. Esperado: em
-   cerca de 2 minutos o e-SAJ recebe o cancelamento e a janela fecha
-   sozinha.
+   cerca de 2 minutos a janela fecha sozinha, o e-SAJ mostra o erro e a
+   janela **não** volta (a tela de login repete o pedido três vezes, e as
+   repetições caem na pausa de 15 s).
 
 6. **Bloquear este site.** No login, clique em "Bloquear este site".
    Esperado: o e-SAJ recebe o cancelamento; no ícone, o site aparece como
@@ -116,4 +122,4 @@ Um arquivo só, por exemplo para repetir o de convivência:
 
     node --test test/e2e/convivencia.test.mjs
 
-Estado em 22/11/2026: unidade 138/138, ponta a ponta no Chrome 39/39.
+Estado em 22/11/2026: unidade 139/139, ponta a ponta no Chrome 39/39.
