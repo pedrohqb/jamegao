@@ -39,7 +39,7 @@ Gera `dist/jamegao-<versão>.zip`, o mesmo arquivo para as duas lojas. O passo a
 
 ## Privacidade
 
-A extensão não coleta nem transmite dado algum. Veja `PRIVACIDADE.md`.
+A extensão não tem servidor e não envia dado algum ao desenvolvedor nem a terceiros; só entrega ao site do e-SAJ autorizado, quando ele pede, os dados do certificado e as assinaturas. Veja `PRIVACIDADE.md`.
 
 ## Desenho
 
