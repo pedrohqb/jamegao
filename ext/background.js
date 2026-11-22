@@ -1,7 +1,15 @@
-// Núcleo: atende os comandos do protocolo Web PKI / WebSigner.
-// Nesta etapa só os comandos de inicialização; o resto devolve
-// "comando não suportado".
-import { COMPAT_VERSION, CODES, PkiError, fail, ok } from './lib/protocol.js';
+// Fundo: só liga eventos. A decisão está em lib/commands.js e os pedidos de
+// confirmação em lib/prompts.js. Nada fica em memória entre eventos: o
+// service worker pode morrer a qualquer momento, então os módulos são
+// recriados a cada mensagem e o estado vive em storage/IndexedDB.
+import { CODES, fail } from './lib/protocol.js';
+import { browserKv } from './lib/kv.js';
+import { createVault } from './lib/vault.js';
+import { createCerts } from './lib/certs.js';
+import { createSites } from './lib/sites.js';
+import { createCredits } from './lib/credits.js';
+import { createCommands } from './lib/commands.js';
+import { createPrompts } from './lib/prompts.js';
 
 const api = globalThis.browser ?? globalThis.chrome;
 
@@ -12,31 +20,6 @@ const platformOs = async () => {
   } catch {
     return 'Linux';
   }
-};
-
-const COMMANDS = {
-  async getExtensionVersion() {
-    return COMPAT_VERSION;
-  },
-
-  async getVersion() {
-    return COMPAT_VERSION;
-  },
-
-  async initialize() {
-    const os = await platformOs();
-    return {
-      isReady: true,
-      status: 0,
-      message: null,
-      nativeInfo: { os, installedVersion: COMPAT_VERSION, essentialFeaturesOnly: false },
-      platformInfo: { os },
-    };
-  },
-
-  async pollNative() {
-    return true;
-  },
 };
 
 // Só vale a origem que o próprio navegador informa para o quadro que pediu.
@@ -51,25 +34,76 @@ export const senderOrigin = (sender) => {
   }
 };
 
-const dispatch = async (msg, sender) => {
-  const handler = Object.prototype.hasOwnProperty.call(COMMANDS, msg.command) ? COMMANDS[msg.command] : null;
-  try {
-    if (!handler) {
-      throw new PkiError(`O Jamegão não atende o comando "${msg.command}"`, CODES.unsupported);
-    }
-    return ok(await handler(msg.request, senderOrigin(sender)));
-  } catch (err) {
-    if (err instanceof PkiError) return fail(err.code, err.message);
-    return fail(CODES.internal, 'Erro interno do Jamegão: ' + (err && err.message));
-  }
+const modules = () => {
+  const kv = browserKv();
+  const now = () => Date.now();
+  const vault = createVault({ local: kv.local, session: kv.session, now });
+  const certs = createCerts();
+  const sites = createSites(kv);
+  const credits = createCredits({ session: kv.session, now });
+  const prompts = createPrompts({
+    session: kv.session, vault, certs, sites, credits, now,
+    notify: (tabId, frameId, msg) => api.tabs.sendMessage(tabId, msg, { frameId }),
+    closeWindow: (windowId) => api.windows.remove(windowId),
+  });
+  return { vault, certs, sites, credits, prompts };
 };
 
+async function webpkiRequest(msg, sender) {
+  const m = modules();
+  const commands = createCommands({ ...m, platformOs: await platformOs() });
+  const result = await commands.handle({ command: msg.command, request: msg.request }, senderOrigin(sender));
+  if (!result.needs) return result;
+  const opened = await m.prompts.open(result.needs, {
+    origin: senderOrigin(sender), tabId: sender.tab.id, frameId: sender.frameId ?? 0, command: msg.command,
+  });
+  if (opened.busy) return fail(CODES.cancelled, 'Há uma confirmação pendente nesta aba.');
+  try {
+    const win = await api.windows.create({
+      url: api.runtime.getURL('pages/confirm.html') + '?id=' + encodeURIComponent(opened.id),
+      type: 'popup', width: 440, height: 520,
+    });
+    await m.prompts.setWindow(opened.id, win.id);
+  } catch {
+    await m.prompts.abandon(opened.id);
+    return fail(CODES.cancelled, 'Não foi possível abrir a janela de confirmação.');
+  }
+  return { pending: true, promptId: opened.id };
+}
+
+const fromConfirmPage = (sender) =>
+  typeof sender?.url === 'string' && sender.url.startsWith(api.runtime.getURL('pages/confirm.html'));
+
+async function promptMessage(msg, sender) {
+  const { prompts } = modules();
+  if (msg.type === 'prompt-abandon') {
+    // A janela de confirmação ou o próprio quadro que fez o pedido.
+    if (fromConfirmPage(sender)) return prompts.abandon(String(msg.id));
+    if (sender?.tab) return prompts.abandon(String(msg.id), { tabId: sender.tab.id });
+    return undefined;
+  }
+  if (!fromConfirmPage(sender)) return null; // describe/answer: só a janela de confirmação
+  if (msg.type === 'prompt-describe') return prompts.describe(String(msg.id));
+  return prompts.answer(String(msg.id), { allow: msg.allow === true, password: msg.password });
+}
+
 api.runtime.onMessage.addListener((msg, sender, sendResponse) => {
-  if (!msg || msg.type !== 'webpki-request') return false;
-  // Só páginas (content script) fazem pedidos.
-  if (!sender || !sender.tab) return false;
-  dispatch(msg, sender).then(sendResponse);
+  if (!msg) return false;
+  let task;
+  if (msg.type === 'webpki-request') {
+    if (!sender || !sender.tab) return false; // só páginas (content script) fazem pedidos
+    task = webpkiRequest(msg, sender).catch((e) => fail(CODES.internal, 'Erro interno do Jamegão: ' + (e && e.message)));
+  } else if (['prompt-describe', 'prompt-answer', 'prompt-abandon'].includes(msg.type)) {
+    task = promptMessage(msg, sender).catch(() => null);
+  } else {
+    return false;
+  }
+  task.then(sendResponse);
   return true;
+});
+
+api.windows.onRemoved.addListener((windowId) => {
+  modules().prompts.closedWindow(windowId).catch(() => {});
 });
 
 // Primeira execução: abre a página de importação do certificado.

@@ -70,15 +70,84 @@
     } catch { /* quadro de origem opaca: não há como responder */ }
   };
 
+  const PROMPT_TIMEOUT_MS = 120000;
+
+  const cancelled = (message) => ({
+    success: false,
+    exception: { message, complete: message, origin: 'extension', code: 'user_cancelled' },
+  });
+
+  // Respostas de confirmação: id -> função que recebe o desfecho. Se o
+  // desfecho chegar antes de alguém esperar por ele, fica guardado em "early".
+  const waiting = new Map();
+  const early = new Map();
+  const live = new Set();
+  api.runtime.onMessage.addListener((msg) => {
+    if (!msg || msg.type !== 'prompt-resolved' || typeof msg.id !== 'string') return false;
+    const fn = waiting.get(msg.id);
+    if (fn) fn(msg.outcome);
+    else early.set(msg.id, msg.outcome);
+    return false;
+  });
+
+  const abandon = (id) => {
+    live.delete(id);
+    Promise.resolve(api.runtime.sendMessage({ type: 'prompt-abandon', id })).catch(() => {});
+  };
+  // Se a página sai, a confirmação pendente deixa de ter dono.
+  window.addEventListener('pagehide', () => { for (const id of [...live]) abandon(id); });
+
+  const waitPrompt = (id) =>
+    new Promise((resolve) => {
+      live.add(id);
+      let timer = null;
+      const done = (outcome) => {
+        clearTimeout(timer);
+        waiting.delete(id);
+        early.delete(id);
+        live.delete(id);
+        resolve(outcome);
+      };
+      if (early.has(id)) return done(early.get(id));
+      waiting.set(id, done);
+      timer = setTimeout(() => {
+        abandon(id);
+        done(cancelled('Operação cancelada: a confirmação não foi respondida em 120 s.'));
+      }, PROMPT_TIMEOUT_MS);
+    });
+
+  const ask = async (brand, message) => {
+    const result = await api.runtime.sendMessage({
+      type: 'webpki-request',
+      brand: brand.prefix,
+      command: String(message.command),
+      request: message.request ?? null,
+    });
+    if (result && result.pending === true && typeof result.promptId === 'string') return result;
+    if (!result || typeof result.success !== 'boolean') {
+      return failure('Jamegão: resposta inválida da extensão');
+    }
+    return result;
+  };
+
   const handle = async (brand, channel, message) => {
     let result;
     try {
-      result = await api.runtime.sendMessage({
-        type: 'webpki-request',
-        brand: brand.prefix,
-        command: String(message.command),
-        request: message.request ?? null,
-      });
+      result = await ask(brand, message);
+      if (result.pending) {
+        let outcome = await waitPrompt(result.promptId);
+        if (outcome === 'retry') {
+          // O usuário aceitou: repete o mesmo pedido, uma única vez.
+          result = await ask(brand, message);
+          if (result.pending) {
+            abandon(result.promptId);
+            outcome = cancelled('Operação cancelada: a confirmação não foi concluída.');
+          } else {
+            outcome = result;
+          }
+        }
+        result = outcome;
+      }
       if (!result || typeof result.success !== 'boolean') {
         result = failure('Jamegão: resposta inválida da extensão');
       }
