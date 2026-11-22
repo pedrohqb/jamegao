@@ -139,6 +139,10 @@ const ALARM_TRAVAMENTO = 'travamento';
 const agendarTravamento = () => api.alarms.create(ALARM_TRAVAMENTO, { periodInMinutes: 1 });
 api.runtime.onInstalled.addListener(agendarTravamento);
 api.runtime.onStartup.addListener(agendarTravamento);
+// Também a cada carga do fundo, sem refazer o que já existe (cobre reativar a extensão).
+Promise.resolve(api.alarms.get(ALARM_TRAVAMENTO))
+  .then((a) => { if (!a) agendarTravamento(); })
+  .catch(() => {});
 api.alarms.onAlarm.addListener((alarm) => {
   if (alarm.name !== ALARM_TRAVAMENTO) return;
   const { vault, credits } = modules();

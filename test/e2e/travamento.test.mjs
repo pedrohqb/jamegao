@@ -67,3 +67,22 @@ test('30 minutos sem uso travam o cofre', async () => {
   await r;
   await page.close();
 });
+
+test('o alarme trava o cofre e limpa os créditos', async () => {
+  await naExtensao(() => chrome.storage.session.set({
+    lastUse: Date.now() - 31 * 60000,
+    vaultKey: 'AAAA',
+    credits: { 'http://x\nAAAA': { remaining: 2, expires: Date.now() + 300000 } },
+  }));
+  // Um alarme de mesmo nome substitui o periódico; é recriado ao final.
+  await naExtensao(() => chrome.alarms.create('travamento', { when: Date.now() + 100 }));
+  let restante;
+  for (let i = 0; i < 50; i++) {
+    restante = await naExtensao(() => chrome.storage.session.get(['credits', 'lastUse', 'vaultKey']));
+    if (!restante.credits && !restante.vaultKey) break;
+    await new Promise((r) => setTimeout(r, 200));
+  }
+  assert.equal(restante.credits, undefined, 'créditos deveriam ter sido limpos');
+  assert.equal(restante.vaultKey, undefined, 'cofre deveria ter travado (chave descartada)');
+  await naExtensao(() => chrome.alarms.create('travamento', { periodInMinutes: 1 }));
+});
