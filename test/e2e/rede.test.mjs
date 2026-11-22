@@ -49,9 +49,16 @@ test('fundo e páginas não conseguem abrir conexão', async () => {
   const base = `http://127.0.0.1:${spy.address().port}`;
   const resultados = {};
 
-  const swTarget = h.browser.targets().find((t) => t.type() === 'service_worker' && t.url().includes('background.js'));
-  const worker = await swTarget.worker();
-  resultados.fundo = await worker.evaluate(`(${tentativas})(${JSON.stringify(base)}, 'fundo', false)`);
+  // Só Chrome: o fundo do Firefox é uma página de fundo, sem alvo de worker
+  // para o puppeteer avaliar código nele. A CSP (connect-src 'none') vale
+  // igualmente para as páginas da extensão, testadas abaixo.
+  if (h.name === 'chrome') {
+    const swTarget = h.browser.targets().find((t) => t.type() === 'service_worker' && t.url().includes('background.js'));
+    const worker = await swTarget.worker();
+    resultados.fundo = await worker.evaluate(`(${tentativas})(${JSON.stringify(base)}, 'fundo', false)`);
+  } else {
+    console.log('# fundo não testado no Firefox (sem alvo de worker); só as páginas da extensão');
+  }
 
   for (const p of paginas) {
     const nome = p.split('/')[1].replace('.html', '');

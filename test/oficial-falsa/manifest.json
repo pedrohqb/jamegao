@@ -3,6 +3,7 @@
   "name": "Oficial falsa (teste)",
   "version": "1.0.0",
   "description": "Imita a extensão oficial para os testes de convivência.",
+  "browser_specific_settings": { "gecko": { "id": "oficial-falsa@jamegao.test" } },
   "content_scripts": [
     {
       "matches": ["http://localhost/*", "http://127.0.0.1/*"],
