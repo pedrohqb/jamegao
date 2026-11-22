@@ -54,7 +54,9 @@ TJSP.
    migração retirada; conexões do banco cedem quando outra versão pede
    (sem rejeitar no "bloqueado", que vazaria conexão); janela avisa
    quando o pedido expirou; desenho atualizado. O login e o prazo de 120 s
-   no Firefox foram testados por Pedro com a build destas correções.
+   no Firefox e no Brave foram testados por Pedro com a build e11110e,
+   anterior a esta revisão; as correções da revisão foram testadas só pela
+   suíte automática.
 
 ## Firefox
 
