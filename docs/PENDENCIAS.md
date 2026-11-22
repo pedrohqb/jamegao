@@ -1,7 +1,7 @@
 # Pendências da v0.1
 
-Estado em 21/11/2026, 22h40. Ramo `v0.1`. Testes: unidade 127/127; ponta a ponta
-no Chrome 37/37. O Firefox nunca foi executado (não havia Firefox no ambiente
+Estado em 21/11/2026, 22h45. Ramo `v0.1`. Testes: unidade 127/127; ponta a ponta
+no Chrome 38 testes, com um intermitente (item 9 abaixo). O Firefox nunca foi executado (não havia Firefox no ambiente
 de desenvolvimento).
 
 A revisão final do ramo inteiro não achou nenhum caminho em que uma página
@@ -34,6 +34,13 @@ não pronto para envio às lojas.
    e a aba esperando 120 s.
 8. **Teste negativo do script de conteúdo** usa página `data:`; trocar por
    `127.0.0.1`.
+
+9. **Teste intermitente de convivência** (`convivencia.test.mjs`, "página já
+   aberta: escolher a oficial cala o Jamegão na mesma página"): falhou em 2 de
+   5 execuções. Indício: logo depois de ligar o interruptor, um pedido ainda
+   é respondido pelo Jamegão com a recusa "Neste site a extensão oficial
+   responde", antes da oficial. Causa não confirmada. O Jamegão deveria ficar
+   calado nesse caso, em vez de responder com recusa.
 
 ## Firefox
 
