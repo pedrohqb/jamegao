@@ -113,9 +113,15 @@ test('esqueci a senha apaga cofre e certificados após confirmação', async () 
   assert.notEqual(await a.estadoDo(popup), 'sem-certificado');
   assert.ok((await a.lerStorage('vaultMeta')).vaultMeta);
 
+  await popup.evaluate(() => chrome.storage.local.set({ lockout: { failures: 4, until: Date.now() + 5000 } }));
+  await popup.evaluate(() => chrome.storage.session.set({ credits: { x: { origin: 'o', thumbprint: 't', remaining: 2, expires: Date.now() + 100000 } } }));
   await popup.click('#apagar-tudo');
   await popup.waitForSelector('#estado[data-estado="sem-certificado"]');
-  const s = await a.lerStorage(['vaultMeta', 'sites']);
+  const s = await a.lerStorage(['vaultMeta', 'sites', 'lockout']);
+  assert.equal(s.lockout, undefined);
+  const sess = await popup.evaluate(() => chrome.storage.session.get(['credits', 'vaultKey']));
+  assert.equal(sess.credits, undefined);
+  assert.equal(sess.vaultKey, undefined);
   assert.equal(s.vaultMeta, undefined);
   assert.equal(s.sites === undefined || Object.keys(s.sites).length === 0, true);
   assert.equal((await popup.$$('#certs li')).length, 0);

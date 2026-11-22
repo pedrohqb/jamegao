@@ -58,21 +58,51 @@ test('interruptor "deixar a extensão oficial responder" cala o Jamegão no site
   await a.semJanela(500);
 });
 
-test('com as duas respondendo, a página termina o fluxo sem travar', { timeout: 90000 }, async () => {
+test('com as duas respondendo, a página termina o fluxo sem travar', { timeout: 60000 }, async () => {
   await importar();
   const page = await a.abrirPagina(h.origin, LIB);
+  // As respostas duplicadas do init já chegaram; só contamos o que vem depois.
+  await new Promise((r) => setTimeout(r, 500));
   const erros = [];
   page.on('pageerror', (e) => erros.push(e.message));
-  const limite = (p, nome) => Promise.race([
-    p,
-    new Promise((_, rej) => setTimeout(() => rej(new Error('a página travou em ' + nome)), 20000)),
-  ]);
-  const lista = await limite(a.chamar(page, () => window.listar()), 'listar');
-  const T = (lista.ok ?? [])[0]?.thumbprint ?? 'AAAA';
-  const lido = await limite(a.chamar(page, (t) => window.ler(t), T), 'ler');
-  const assinado = await limite(a.chamar(page, (t) => window.assinarDados(t, 'eA==', 'SHA-256'), T), 'assinar');
-  // Cada etapa terminou (com resposta de uma das duas extensões).
-  for (const r of [lista, lido, assinado]) assert.ok('ok' in r || 'err' in r);
-  console.log('# convivência: listar=%s ler=%s assinar=%s pageerrors=%d',
-    JSON.stringify(lista).slice(0, 80), JSON.stringify(lido).slice(0, 80), JSON.stringify(assinado).slice(0, 80), erros.length);
+
+  // A oficial responde em 20 ms; o Jamegão antes precisa pedir o site ao usuário.
+  const r = a.chamar(page, () => window.listar());
+  const j = await a.janela(h.origin);
+  const lista = await r; // a página termina o fluxo sem esperar o usuário
+  assert.deepEqual(lista.ok.map((c) => c.subjectName), ['TOKEN FALSO']);
+  // O usuário autoriza: o Jamegão responde ao pedido já encerrado. O SDK da
+  // página não tem mais o requestId e lança um TypeError - exatamente um.
+  await a.responder(j, '#confirmar');
+  await new Promise((res) => setTimeout(res, 800));
+  assert.equal(erros.length, 1, erros.join(' | '));
+  assert.match(erros[0], /undefined|null/);
+  // A página continua funcional: novo pedido é atendido sem janela. Quem
+  // responde primeiro (o Jamegão, local e imediato, ou a oficial, 20 ms) não é
+  // determinístico, então só se exige uma lista de um certificado.
+  const outra = await a.chamar(page, () => window.listar());
+  assert.equal(outra.ok.length, 1);
+  assert.ok(['TOKEN FALSO', 'FULANO DE TAL TESTE:12345678909'].includes(outra.ok[0].subjectName));
+  await a.semJanela(0);
+});
+
+test('página já aberta: escolher a oficial cala o Jamegão na mesma página', async () => {
+  await importar();
+  const page = await a.abrirPagina(h.origin, LIB);
+  assert.ok((await marcadores(page)) > 0);
+  await new Promise((r) => setTimeout(r, 500));
+  const erros = [];
+  page.on('pageerror', (e) => erros.push(e.message));
+
+  const popup = await a.abrirPopup();
+  const sw = `#sites li[data-origem="${h.origin}"] input.oficial`;
+  await popup.waitForSelector(sw);
+  await popup.click(sw);
+  await popup.waitForFunction((s) => document.querySelector(s)?.checked, {}, sw);
+
+  const lista = await a.chamar(page, () => window.listar());
+  assert.deepEqual(lista.ok.map((c) => c.subjectName), ['TOKEN FALSO']);
+  await a.semJanela(800);
+  assert.equal(await marcadores(page), 0, 'o Jamegão deveria ter retirado os próprios marcadores');
+  assert.deepEqual(erros, [], 'nenhuma segunda resposta deveria chegar à página');
 });
