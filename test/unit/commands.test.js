@@ -255,17 +255,6 @@ test('cofre trava entre a conferência e a decifragem: pede senha', async () => 
   assert.deepEqual(r, { needs: { unlock: true, sign: { count: 1, thumbprint: T } } });
 });
 
-test('site que prefere a extensão oficial: fica calado em tudo, menos a inicialização', async () => {
-  await setup();
-  await sites.setAllowed(O, true);
-  await sites.setPreferOfficial(O, true);
-  for (const c of ['listCertificates', 'readCertificate', 'signData', 'preauthorizeSignatures', 'inexistente']) {
-    const r = await run(c, { certificateThumbprint: T, data: 'eA==', digestAlgorithm: 'SHA-256', signatureCount: 1 });
-    assert.deepEqual(r, { silent: true }, c);
-  }
-  assert.equal((await run('getVersion', {})).success, true);
-});
-
 test('site novo com crédito sobrando: a janela mostra também a quantidade', async () => {
   await setup();
   await credits.grant(O, T, 5);

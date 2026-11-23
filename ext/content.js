@@ -10,6 +10,12 @@
 // Este script anuncia as marcas e repassa cada pedido ao background, que é
 // quem tem acesso aos certificados. Os pedidos de cada quadro são atendidos
 // em fila, um por vez.
+//
+// Se a extensão oficial estiver na página, o Jamegão se desliga nela: tira os
+// seus elementos, abandona a confirmação pendente e não responde mais nada.
+// As duas respondendo ao mesmo pedido quebram o fluxo do e-SAJ (a página fica
+// com a primeira resposta, e a oficial responde na hora "certificado não
+// encontrado" para o A1 do Jamegão).
 (() => {
   'use strict';
 
@@ -50,7 +56,7 @@
 
   // O fundo decide, pela origem que o navegador informa, se este quadro
   // deve se anunciar (precisa de certificado importado e de o site não estar
-  // bloqueado nem preferir a extensão oficial). Sem resposta, não anuncia.
+  // bloqueado). Sem resposta, não anuncia.
   const announced = (async () => {
     try {
       const r = await api.runtime.sendMessage({ type: 'announce?' });
@@ -59,39 +65,76 @@
       return false;
     }
   })();
-  announced.then((yes) => {
-    if (yes && !announce()) document.addEventListener('DOMContentLoaded', announce, { once: true });
-  });
-
-  const stillAnnounced = async () => {
-    try {
-      const r = await api.runtime.sendMessage({ type: 'announce?', recheck: true });
-      return !!r && r.announce === true;
-    } catch {
-      return false;
-    }
-  };
   const retract = () => {
     for (const el of document.querySelectorAll('[data-jamegao]')) el.remove();
   };
 
-  // Elemento de marca que não é nosso: a extensão oficial está presente.
-  let officialReported = false;
-  const noteOfficial = () => {
-    if (officialReported) return;
-    for (const brand of BRANDS) {
-      for (const id of brand.ids) {
-        for (const el of document.querySelectorAll(`[id="${id}"]`)) {
-          if (el.hasAttribute('data-jamegao')) continue;
-          officialReported = true;
-          Promise.resolve(api.runtime.sendMessage({ type: 'official-seen' })).catch(() => {});
-          return;
-        }
+  // --- Extensão oficial na página: o Jamegão se desliga -------------------
+  let official = false;
+  const live = new Set(); // confirmações pendentes deste quadro
+  let abandon = () => {}; // definida abaixo
+
+  const standDown = () => {
+    if (official) return;
+    official = true;
+    retract();
+    for (const id of [...live]) abandon(id);
+    Promise.resolve(api.runtime.sendMessage({ type: 'official-seen' })).catch(() => {});
+  };
+  announced.then((yes) => {
+    if (!yes || official) return;
+    if (!announce()) document.addEventListener('DOMContentLoaded', () => { if (!official) announce(); }, { once: true });
+  });
+
+  const IDS = new Set(BRANDS.flatMap((b) => b.ids));
+  const isOfficialMark = (el) =>
+    el && el.nodeType === 1 && IDS.has(el.id) && !el.hasAttribute('data-jamegao');
+
+  // 1. O elemento de marca da oficial (ela o cria ao carregar a página).
+  const scan = () => {
+    for (const id of IDS) {
+      for (const el of document.querySelectorAll(`[id="${id}"]`)) {
+        if (isOfficialMark(el)) return standDown();
       }
     }
   };
-  noteOfficial();
-  document.addEventListener('DOMContentLoaded', noteOfficial, { once: true });
+  scan();
+  const observer = new MutationObserver((records) => {
+    for (const r of records) {
+      for (const node of r.addedNodes) {
+        if (isOfficialMark(node)) { observer.disconnect(); return standDown(); }
+      }
+    }
+  });
+  try {
+    observer.observe(document, { childList: true, subtree: true });
+    // A oficial se marca no começo da página; depois disso, quem a denuncia
+    // é a resposta (abaixo). Vigiar o DOM para sempre seria custo à toa.
+    window.addEventListener('load', () => setTimeout(() => observer.disconnect(), 5000), { once: true });
+  } catch { /* sem DOM observável: fica só a detecção pela resposta */ }
+  document.addEventListener('DOMContentLoaded', scan, { once: true });
+
+  // 2. Uma resposta que não é nossa. As nossas são marcadas na saída: os
+  //    eventos, por objeto; as mensagens (Firefox), pela contagem por pedido.
+  const mineEvents = new WeakSet();
+  const mineMessages = new Map(); // requestId -> respostas nossas a caminho
+  const isForeignMessage = (msg) => {
+    const id = msg && typeof msg === 'object' ? msg.requestId : undefined;
+    const n = mineMessages.get(id) || 0;
+    if (n > 0) {
+      if (n === 1) mineMessages.delete(id); else mineMessages.set(id, n - 1);
+      return false;
+    }
+    return true;
+  };
+  for (const brand of BRANDS) {
+    const port = brand.prefix + '.ResponseEvent';
+    document.addEventListener(port, (event) => { if (!mineEvents.has(event)) standDown(); }, true);
+    window.addEventListener('message', (event) => {
+      if (event.source !== window || !event.data || event.data.port !== port) return;
+      if (isForeignMessage(event.data.message)) standDown();
+    }, true);
+  }
 
   const failure = (message) => ({
     success: false,
@@ -99,15 +142,19 @@
   });
 
   const reply = (brand, channel, message) => {
+    if (official) return;
     const port = brand.prefix + '.ResponseEvent';
     try {
       if (channel === 'message') {
+        mineMessages.set(message.requestId, (mineMessages.get(message.requestId) || 0) + 1);
         window.postMessage({ port, message }, window.location.origin);
       } else {
         // No Firefox, objetos do content script só ficam legíveis para a
         // página se forem clonados para o contexto dela.
         const detail = typeof cloneInto === 'function' ? cloneInto(message, window) : message;
-        document.dispatchEvent(new CustomEvent(port, { detail }));
+        const event = new CustomEvent(port, { detail });
+        mineEvents.add(event);
+        document.dispatchEvent(event);
       }
     } catch { /* quadro de origem opaca: não há como responder */ }
   };
@@ -123,7 +170,6 @@
   // desfecho chegar antes de alguém esperar por ele, fica guardado em "early".
   const waiting = new Map();
   const early = new Map();
-  const live = new Set();
   api.runtime.onMessage.addListener((msg) => {
     if (!msg || msg.type !== 'prompt-resolved' || typeof msg.id !== 'string') return false;
     const fn = waiting.get(msg.id);
@@ -132,7 +178,7 @@
     return false;
   });
 
-  const abandon = (id) => {
+  abandon = (id) => {
     live.delete(id);
     Promise.resolve(api.runtime.sendMessage({ type: 'prompt-abandon', id })).catch(() => {});
   };
@@ -166,7 +212,6 @@
       request: message.request ?? null,
     });
     if (result && result.pending === true && typeof result.promptId === 'string') return result;
-    if (result && result.silent === true) return result;
     if (!result || typeof result.success !== 'boolean') {
       return failure('Jamegão: resposta inválida da extensão');
     }
@@ -191,8 +236,6 @@
         }
         result = outcome;
       }
-      // O site passou a preferir a extensão oficial: some e não responde.
-      if (result && result.silent === true) { retract(); return; }
       if (!result || typeof result.success !== 'boolean') {
         result = failure('Jamegão: resposta inválida da extensão');
       }
@@ -208,10 +251,7 @@
     if (!message || typeof message !== 'object' || typeof message.requestId !== 'string') return;
     queue = queue
       .then(async () => {
-        if (!(await announced)) return;
-        // A decisão pode ter mudado (o usuário preferiu a oficial): se mudou,
-        // some e fica calado, para só a outra extensão responder.
-        if (!(await stillAnnounced())) { retract(); return; }
+        if (official || !(await announced) || official) return;
         await handle(brand, channel, message);
       })
       .catch(() => {});

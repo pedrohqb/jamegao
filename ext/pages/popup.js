@@ -39,11 +39,9 @@ const checkbox = (cls, label, checked, onChange) => {
   return l;
 };
 
-// Volta o site a "perguntar de novo", sem perder a preferência pela oficial.
+// Volta o site a "perguntar de novo".
 async function revogar(origin) {
-  const { preferOfficial } = await sites.get(origin);
   await sites.remove(origin);
-  if (preferOfficial) await sites.setPreferOfficial(origin, true);
   await credits.clear();
 }
 
@@ -77,6 +75,7 @@ async function render() {
   const conhecidos = await sites.list();
   const origens = [...new Set([...conhecidos.map((s) => s.origin), ...vistos])].sort();
   $('aviso-oficial').hidden = vistos.length === 0;
+  $('aviso-oficial-sites').textContent = vistos.join(', ');
   $('sites').replaceChildren();
   for (const origin of origens) {
     const s = await sites.get(origin);
@@ -85,13 +84,12 @@ async function render() {
     if (s.allowed === false) li.classList.add('bloqueado');
     const nome = document.createElement('div');
     nome.className = 'nome-site';
-    nome.textContent = origin + (s.allowed === false ? ' (bloqueado)' : '');
+    nome.textContent = origin + (s.allowed === false ? ' (bloqueado)' : vistos.includes(origin) ? ' (extensão oficial)' : '');
     li.append(nome);
     li.append(checkbox('permitido', 'Permitido', s.allowed === true, async (on) => {
       if (on) await sites.setAllowed(origin, true);
       else await revogar(origin);
     }));
-    li.append(checkbox('oficial', 'Deixar a extensão oficial responder', s.preferOfficial, (on) => sites.setPreferOfficial(origin, on)));
     li.append(s.allowed === false
       ? button('desbloquear', 'Desbloquear', () => revogar(origin))
       : button('bloquear', 'Bloquear', async () => { await sites.setAllowed(origin, false); await credits.clear(); }));
