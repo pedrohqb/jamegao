@@ -35,7 +35,7 @@ O Jamegão é um projeto independente, sem vínculo com os fornecedores do e-SAJ
 
 | Tribunal | Endereço | Situação |
 |---|---|---|
-| TJSP | `esaj.tjsp.jus.br` | login testado no Firefox e no Brave |
+| TJSP | `esaj.tjsp.jus.br` | petição assinada e protocolada no Firefox; login testado também no Brave |
 | TJAL | `www2.tjal.jus.br` | login e assinatura testados na versão de teste |
 | TJMS | `esaj.tjms.jus.br` | incluído, ainda não testado |
 | TJAC | `esaj.tjac.jus.br` | incluído, ainda não testado |
@@ -143,7 +143,7 @@ Detalhes na [política de privacidade](PRIVACIDADE.md).
 
 ### A fazer
 
-- **Testar a assinatura de petição** com a versão publicada, no Firefox e no Chromium (no protótipo, já funcionou no TJSP e no TJAL).
+- **Testar a assinatura de petição no Chromium** com a versão publicada (no Firefox, já funcionou no TJSP).
 - **Testar TJMS, TJAC, TJCE e TJBA.**
 - **Versão 0.1.1:** atualização automática no Firefox (endereço de atualização no manifesto) e ajustes apontados na validação da Mozilla (veja [pendências](docs/PENDENCIAS.md)).
 

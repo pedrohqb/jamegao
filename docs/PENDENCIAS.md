@@ -5,6 +5,9 @@ ponta no Chrome 39/39.
 
 ## Testado por Pedro
 
+- Primeira petição real assinada e protocolada com a 0.1.0: e-SAJ do TJSP,
+  Firefox, Linux (Bluefin), 23/11/2026.
+
 - Login no e-SAJ do TJSP com a v0.1 no Brave e no Firefox (extensão
   temporária). Sem extensão oficial, sem componente nativo.
 - Login no e-SAJ do TJSP no OpenBSD (22/11/2026).
