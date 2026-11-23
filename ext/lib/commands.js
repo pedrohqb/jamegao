@@ -110,6 +110,9 @@ export function createCommands({ vault, certs, sites, credits, platformOs }) {
       if (site.allowed === false) {
         return fail(CODES.cancelled, 'Este site está bloqueado no Jamegão.');
       }
+      // Quem prefere a oficial: o Jamegão não responde nada, nem recusa, para
+      // não chegar à página antes da resposta da oficial.
+      if (site.preferOfficial) return { silent: true };
       if (!own(guarded, command)) {
         return fail(CODES.unsupported, `O Jamegão não atende o comando "${command}".`);
       }

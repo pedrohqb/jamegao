@@ -24,23 +24,11 @@ test('manifesto', () => {
 
 test('valores fixos', () => {
   assert.equal(m.name, 'Jamegão');
-  assert.equal(m.version, '0.1.1');
+  assert.equal(m.version, '0.1.0');
   assert.equal(m.minimum_chrome_version, '121');
   assert.equal(m.action.default_popup, 'pages/popup.html');
   assert.deepEqual(m.background, { service_worker: 'background.js', scripts: ['background.js'], type: 'module' });
-  assert.equal(m.browser_specific_settings.gecko.strict_min_version, '140.0');
-  assert.equal(m.browser_specific_settings.gecko_android.strict_min_version, '142.0');
-  // Atualização automática do .xpi distribuído fora do catálogo da Mozilla.
-  assert.equal(m.browser_specific_settings.gecko.update_url, 'https://raw.githubusercontent.com/pedrohqb/jamegao/main/updates.json');
-});
-
-test('updates.json oferece a versão do manifesto, com o .xpi da release', async () => {
-  const u = JSON.parse(fs.readFileSync(new URL('../../updates.json', import.meta.url), 'utf8'));
-  const versoes = u.addons[m.browser_specific_settings.gecko.id].updates;
-  const atual = versoes.find((v) => v.version === m.version);
-  assert.ok(atual, 'updates.json precisa listar a versão ' + m.version);
-  assert.equal(atual.update_link, `https://github.com/pedrohqb/jamegao/releases/download/v${m.version}/jamegao-${m.version}-firefox.xpi`);
-  for (const v of versoes) assert.match(v.update_link, /^https:\/\//);
+  assert.equal(m.browser_specific_settings.gecko.strict_min_version, '128.0');
 });
 
 test('vendor/forge.min.js é o do node-forge instalado', async () => {

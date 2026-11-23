@@ -88,13 +88,18 @@ async function promptMessage(msg, sender) {
   return prompts.answer(String(msg.id), { allow: msg.allow === true, password: msg.password, block: msg.block === true });
 }
 
-// Anúncio e registro da extensão oficial vista na página (só para o aviso do
-// ícone; quem se desliga é o script de conteúdo): valem só a origem informada
+// Anúncio e convivência com a extensão oficial: valem só a origem informada
 // pelo navegador para o quadro (sender.origin), nunca dados da mensagem.
 async function anunciar(msg, sender) {
   const origin = senderOrigin(sender);
   if (origin === null) return { announce: false };
   const { certs, sites } = modules();
+  // Nova pergunta antes de cada pedido: site bloqueado continua respondendo
+  // (para recusar); só quem passou a preferir a oficial deve se calar (sem certificado
+  // responde lista vazia, como antes).
+  if (msg.recheck === true) {
+    return { announce: !(await sites.get(origin)).preferOfficial };
+  }
   return { announce: await sites.shouldAnnounce(origin, await certs.count()) };
 }
 

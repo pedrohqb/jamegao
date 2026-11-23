@@ -1,6 +1,5 @@
-// Sites: decisão do usuário por origem (local.sites) e origens em que a
-// extensão oficial já apareceu nesta sessão (session.officialSeen, só para o
-// aviso do ícone).
+// Sites: decisão do usuário por origem (local.sites) e origens em que o
+// certificado oficial já apareceu nesta sessão (session.officialSeen).
 
 import { createExclusive } from './exclusive.js';
 
@@ -17,12 +16,13 @@ export function createSites({ local, session }) {
 
   async function get(origin) {
     const e = (await readAll())[origin];
-    return { allowed: e?.allowed };
+    return { allowed: e?.allowed, preferOfficial: e?.preferOfficial === true };
   }
 
   return {
     get,
     setAllowed: (origin, allowed) => patch(origin, { allowed: allowed === true }),
+    setPreferOfficial: (origin, v) => patch(origin, { preferOfficial: v === true }),
     remove: (origin) =>
       exclusive(async () => {
         const all = await readAll();
@@ -34,6 +34,7 @@ export function createSites({ local, session }) {
       return Object.entries(all).map(([origin, e]) => ({
         origin,
         allowed: e.allowed,
+        preferOfficial: e.preferOfficial === true,
       }));
     },
     noteOfficial: (origin) =>
@@ -47,7 +48,9 @@ export function createSites({ local, session }) {
     async shouldAnnounce(origin, certCount) {
       if (!(certCount >= 1)) return false;
       const s = await get(origin);
-      return s.allowed !== false;
+      if (s.allowed === false) return false;
+      if (s.preferOfficial) return false;
+      return true;
     },
   };
 }

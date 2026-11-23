@@ -6,36 +6,31 @@ import { memoryKv } from './helpers.js';
 const O = 'https://esaj.tjsp.jus.br';
 const setup = () => { const kv = memoryKv(); return { kv, s: createSites(kv) }; };
 
-test('origem desconhecida: sem decisão', async () => {
+test('origem desconhecida: sem decisão e sem preferência', async () => {
   const { s } = setup();
-  assert.deepEqual(await s.get(O), { allowed: undefined });
+  assert.deepEqual(await s.get(O), { allowed: undefined, preferOfficial: false });
 });
 
-test('anuncia só com certificado e sem bloqueio', async () => {
+test('anuncia só com certificado, sem bloqueio e sem preferência pela oficial', async () => {
   const { s } = setup();
   assert.equal(await s.shouldAnnounce(O, 0), false);
   assert.equal(await s.shouldAnnounce(O, 1), true);
   await s.setAllowed(O, false);
   assert.equal(await s.shouldAnnounce(O, 1), false);
   await s.setAllowed(O, true);
-  assert.equal(await s.shouldAnnounce(O, 1), true);
+  await s.setPreferOfficial(O, true);
+  assert.equal(await s.shouldAnnounce(O, 1), false);
 });
 
-test('setAllowed, list e remove', async () => {
+test('setAllowed e setPreferOfficial preservam um ao outro; list e remove', async () => {
   const { s } = setup();
   await s.setAllowed(O, true);
-  assert.deepEqual(await s.get(O), { allowed: true });
-  assert.deepEqual(await s.list(), [{ origin: O, allowed: true }]);
+  await s.setPreferOfficial(O, true);
+  assert.deepEqual(await s.get(O), { allowed: true, preferOfficial: true });
+  assert.deepEqual(await s.list(), [{ origin: O, allowed: true, preferOfficial: true }]);
   await s.remove(O);
   assert.deepEqual(await s.list(), []);
-  assert.deepEqual(await s.get(O), { allowed: undefined });
-});
-
-test('preferência antiga pela oficial, gravada pela 0.1.0, é ignorada', async () => {
-  const { kv, s } = setup();
-  await kv.local.set('sites', { [O]: { allowed: true, preferOfficial: true } });
-  assert.deepEqual(await s.get(O), { allowed: true });
-  assert.equal(await s.shouldAnnounce(O, 1), true);
+  assert.deepEqual(await s.get(O), { allowed: undefined, preferOfficial: false });
 });
 
 test('noteOfficial vai para a sessão e não entra em list', async () => {
@@ -57,9 +52,9 @@ test('certCount inválido não anuncia', async () => {
 test('gravações concorrentes não se perdem', async () => {
   const { s } = setup();
   const O2 = 'https://outra.example';
-  await Promise.all([s.setAllowed(O, true), s.setAllowed(O2, true), s.setAllowed(O, false)]);
-  assert.deepEqual(await s.get(O), { allowed: false });
-  assert.equal((await s.get(O2)).allowed, true);
+  await Promise.all([s.setAllowed(O, true), s.setPreferOfficial(O2, true), s.setPreferOfficial(O, true)]);
+  assert.deepEqual(await s.get(O), { allowed: true, preferOfficial: true });
+  assert.equal((await s.get(O2)).preferOfficial, true);
   await Promise.all([s.noteOfficial(O), s.noteOfficial(O2)]);
   assert.equal(await s.officialSeen(O), true);
   assert.equal(await s.officialSeen(O2), true);

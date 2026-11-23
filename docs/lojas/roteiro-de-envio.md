@@ -42,17 +42,3 @@ Textos prontos: nome, resumo e descrição longa em `docs/lojas/descricao.md`; p
 ## 4. Depois do envio
 
 - A cada nova versão: aumente `version` em `ext/manifest.json`, rode `npm run empacotar` e envie o novo zip nas duas lojas.
-
-## 5. Nova versão (a partir da 0.1.1)
-
-1. Suba `version` em `ext/manifest.json` e `package.json`, acrescente a
-   entrada em `updates.json` e rode `npm run unit`, `BROWSER=chrome npm run e2e`
-   e `npm run empacotar`.
-2. Chrome Web Store: no item Jamegão, **Pacote** → **Enviar novo pacote**,
-   escolha o zip e **Enviar para análise**.
-3. addons.mozilla.org: **Enviar uma nova versão** → **Por conta própria** →
-   o mesmo zip → código-fonte **Não**. Quando sair assinada, baixe o `.xpi`
-   em **Gerenciar status e versões**.
-4. GitHub: crie a release `v<versão>` com o `.xpi` renomeado para
-   `jamegao-<versão>-firefox.xpi` (é o nome que o `updates.json` aponta) e o
-   zip renomeado para `jamegao-<versão>-chromium.zip`.

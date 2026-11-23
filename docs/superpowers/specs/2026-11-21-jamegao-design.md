@@ -147,31 +147,27 @@ Itens marcados **(decisão de Pedro)** foram ditos por ele. Os marcados
 - A ligação manual de outros endereços `*.jus.br` fica fora da primeira
   entrega; entra depois da resposta das lojas.
 
-### 8.3 Convivência com as extensões oficiais **(decisão de Pedro, revista na 0.1.1)**
+### 8.3 Convivência com as extensões oficiais **(decisão de Pedro)**
 
-Na 0.1.0, o Jamegão respondia mesmo com a oficial presente, com um
-interruptor por site para calar. No uso real (23/11/2026, Chromium e
-Firefox, com Web PKI e WebSigner ativos para um certificado SerproID), as
-duas respondendo quebraram o login: a oficial responde na hora
-"certificado não encontrado" para o A1 do Jamegão, enquanto o Jamegão espera
-a confirmação do usuário; a página fica com a primeira resposta (erro
-CERT-99) e lança `TypeError` a cada resposta duplicada.
+O elemento de detecção é injetado pela extensão oficial mesmo quando o
+componente nativo dela está ausente ou quebrado. Justamente o público deste
+projeto (WebSigner instalado e sem funcionar, ou sem versão para o sistema)
+pareceria ter "a oficial ativa". Por isso a presença dela não silencia o
+Jamegão.
 
-Decisão de Pedro: havendo a oficial, o Jamegão não roda. Quem já tem a
-oficial não precisa do Jamegão.
-
-- O script de conteúdo se desliga na página quando percebe a oficial: pelo
-  elemento de detecção dela (verificado no início e vigiado até 5 s depois do
-  carregamento) ou por qualquer resposta no protocolo que não seja dele.
-- Desligado, retira os próprios elementos, abandona a confirmação pendente
-  (a janela fecha) e não responde mais nada naquela página.
-- O ícone avisa em quais sites isso aconteceu nesta sessão.
-- O interruptor "deixar a extensão oficial responder" saiu; a preferência
-  gravada pela 0.1.0 é ignorada.
-- Custo aceito: quem tem a oficial instalada mas sem funcionar (sem o
-  componente nativo, por exemplo no Mac com processador Apple) precisa
-  desativá-la ou removê-la para usar o Jamegão. O README e as perguntas
-  frequentes dizem isso.
+- Regra: num site autorizado, se há certificado importado, o Jamegão se
+  anuncia e responde, com ou sem extensão oficial instalada.
+- Se o script de conteúdo encontra o elemento de detecção de uma extensão
+  oficial, o popup avisa que há outra extensão de assinatura na página e
+  oferece o interruptor "deixar a extensão oficial responder neste site". É o
+  caminho de quem usa token naquele tribunal.
+- Com o interruptor ligado, o Jamegão não se anuncia nem responde naquele
+  site. Se o interruptor for ligado com a página aberta, o Jamegão retira o
+  próprio elemento de detecção e fica calado também nos pedidos em curso
+  (não responde nem com recusa, para não chegar à página antes da oficial).
+- Com as duas respondendo, a primeira resposta vence e a segunda é descartada
+  pelo SDK com um erro no console. A implementação precisa confirmar em teste
+  que isso não quebra o fluxo da página; se quebrar, é achado a relatar.
 
 ### 8.4 Cofre **(senha única e travamento em 30 minutos: decisão de Pedro; o restante é proposta)**
 
