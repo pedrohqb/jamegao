@@ -5,22 +5,26 @@ import fs from 'node:fs';
 import { createRequire } from 'node:module';
 import { createAssinar } from '../../ext/lib/assinar.js';
 import { createVault } from '../../ext/lib/vault.js';
+import { createCerts } from '../../ext/lib/certs.js';
 import { createSites } from '../../ext/lib/sites.js';
 import { createCredits } from '../../ext/lib/credits.js';
 import { parsePfx } from '../../ext/lib/pfx.js';
-import { thumbprintOf } from '../../ext/lib/certmodel.js';
+import { buildModel, thumbprintOf } from '../../ext/lib/certmodel.js';
+import { bytesToB64 } from '../../ext/lib/bytes.js';
 import { memoryKv, fakeClock } from './helpers.js';
 
 const forge = createRequire(import.meta.url)('node-forge');
 const O = 'https://exemplo.com.br';
-let kv, clock, vault, sites, credits, assinar, T, pkcs8, keyBlob;
+let kv, clock, vault, certs, sites, credits, assinar, T, pkcs8, certDer, model;
 
 const pfx = new Uint8Array(fs.readFileSync(new URL('../fix/pf-moderno.pfx', import.meta.url)));
 
 before(async () => {
   const r = parsePfx(forge, pfx, 'senha123');
   pkcs8 = r.pkcs8;
+  certDer = r.certDer;
   T = await thumbprintOf(r.certDer);
+  model = buildModel(forge, r.cert, T);
 });
 
 async function setup({ unlocked = true, allowed = true, creditos = 0 } = {}) {
@@ -28,17 +32,20 @@ async function setup({ unlocked = true, allowed = true, creditos = 0 } = {}) {
   clock = fakeClock(1_000_000);
   vault = createVault({ ...kv, now: clock.now, iterations: 1000 });
   await vault.create('senha-do-cofre');
-  keyBlob = await vault.encrypt(pkcs8);
+  certs = createCerts();
+  for (const e of await certs.list()) await certs.remove(e.thumbprint);
+  await certs.put({
+    thumbprint: T, model, certB64: bytesToB64(certDer), key: await vault.encrypt(pkcs8), importedAt: '2026-11-21T00:00:00.000Z',
+  });
   if (!unlocked) await vault.lock();
   sites = createSites(kv);
   if (allowed) await sites.setAllowed(O, true);
   credits = createCredits({ session: kv.session, now: clock.now });
   if (creditos) await credits.grant(O, T, creditos);
-  assinar = createAssinar({ vault, sites, credits });
+  assinar = createAssinar({ vault, sites, credits, certs });
 }
-// A chave cifrada (entry.key do certificado) vem do chamador, em key.
 const chamar = (extra = {}, fazer = async () => 'ok') =>
-  assinar({ origin: O, thumbprint: T, key: keyBlob, ...extra }, fazer);
+  assinar({ origin: O, thumbprint: T, ...extra }, fazer);
 
 test('site novo: pede site e assinatura, sem chamar fazer', async () => {
   await setup({ allowed: false, creditos: 1 });
@@ -131,4 +138,13 @@ test('cofre trava entre a conferência e a decifragem: pede unlock', async () =>
   };
   const r = await chamar();
   assert.deepEqual(r, { needs: { unlock: true, sign: { count: 1, thumbprint: T } } });
+});
+
+test('certificado desconhecido: erra e não consome crédito', async () => {
+  await setup({ creditos: 1 });
+  await assert.rejects(
+    assinar({ origin: O, thumbprint: 'AAAA' }, async () => 1),
+    (e) => e.code === 'certificate_not_found',
+  );
+  assert.equal(await credits.has(O, T), true);
 });

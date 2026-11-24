@@ -3,13 +3,15 @@
 // devolve {needs} (o que o usuário precisa fazer) e quem chama pede.
 import { CODES, PkiError } from './protocol.js';
 
-export function createAssinar({ vault, sites, credits }) {
-  // `key` é a chave cifrada do certificado (entry.key), que o chamador já
-  // leu do armazém de certificados.
+export function createAssinar({ vault, sites, credits, certs }) {
   return async function assinar(
-    { origin, thumbprint, key, quantidade = 1, novoLote = false, sign = {} },
+    { origin, thumbprint, quantidade = 1, novoLote = false, sign = {} },
     fazer,
   ) {
+    // A chave vem do armazém, pela impressão digital: o chamador não escolhe
+    // a chave separadamente do crédito que gasta.
+    const entry = await certs.get(thumbprint);
+    if (!entry) throw new PkiError('Certificado não encontrado', CODES.notFound);
     const pedido = { ...sign, count: quantidade, thumbprint };
     const needs = {};
     if ((await sites.get(origin)).allowed !== true) needs.site = true;
@@ -26,7 +28,7 @@ export function createAssinar({ vault, sites, credits }) {
     }
     let pkcs8;
     try {
-      pkcs8 = await vault.decrypt(key);
+      pkcs8 = await vault.decrypt(entry.key);
     } catch {
       // O cofre travou entre a conferência e a decifragem.
       if (!(await vault.isUnlocked())) return { needs: { unlock: true, sign: pedido } };
