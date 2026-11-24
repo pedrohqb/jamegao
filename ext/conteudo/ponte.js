@@ -7,7 +7,9 @@
 // pedidos do quadro em fila, um por vez.
 (() => {
   'use strict';
-  if (globalThis.jamegaoPonte) return;
+  // Só a ponte de verdade conta: um elemento da página com id="jamegaoPonte"
+  // também aparece como global e não pode desligá-la.
+  if (typeof globalThis.jamegaoPonte?.pedir === 'function') return;
 
   const api = globalThis.browser ?? globalThis.chrome;
   const PROMPT_TIMEOUT_MS = 120000;
@@ -75,7 +77,7 @@
     return result;
   };
 
-  const run = async (protocolo, command, request) => {
+  const run = async (protocolo, command, request, repetir) => {
     let result;
     try {
       result = await ask(protocolo, command, request);
@@ -84,8 +86,9 @@
         if (outcome === 'programa') {
           outcome = { programa: true };
         } else if (outcome === 'retry') {
-          // O usuário aceitou: repete o mesmo pedido, uma única vez.
-          result = await ask(protocolo, command, request);
+          // O usuário aceitou: repete o pedido, uma única vez. `repetir` diz
+          // como (o lote de documentos não pode pedir janela nova de novo).
+          result = await ask(protocolo, command, repetir(request));
           if (result.pending) {
             abandon(result.promptId);
             outcome = cancelled('Operação cancelada: a confirmação não foi concluída.');
@@ -104,8 +107,8 @@
 
   // Fila única por quadro: um pedido só começa quando o anterior terminou.
   let queue = Promise.resolve();
-  const pedir = (protocolo, comando, pedido) => {
-    const result = queue.then(() => run(protocolo, comando, pedido));
+  const pedir = (protocolo, comando, pedido, { repetir = (p) => p } = {}) => {
+    const result = queue.then(() => run(protocolo, comando, pedido, repetir));
     queue = result.catch(() => {});
     return result;
   };

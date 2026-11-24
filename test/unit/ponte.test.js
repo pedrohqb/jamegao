@@ -169,3 +169,36 @@ test('a fila serializa: o segundo pedido só sai quando o primeiro termina', asy
   await b;
   assert.deepEqual(m.enviados.map((e) => e.command), ['a', 'b']);
 });
+
+test('um elemento da página com id jamegaoPonte não impede a ponte', async () => {
+  const m = mundo();
+  // Nos navegadores, um elemento com id vira propriedade global da página.
+  vm.runInContext('globalThis.jamegaoPonte = { nodeName: "DIV" };', m.ctx);
+  m.carregar();
+  assert.equal(typeof m.ponte().pedir, 'function');
+  assert.equal(m.ouvintes.length, 1);
+});
+
+test('retry repete o pedido transformado por repetir', async () => {
+  const m = mundo();
+  m.carregar();
+  m.respostas.push({ pending: true, promptId: 'p1' }, ok);
+  const p = m.ponte().pedir('pje', 'assinar', { tipo: 'documentos', novo: true }, { repetir: (q) => ({ ...q, novo: false }) });
+  await tick();
+  m.resolver('p1', 'retry');
+  assert.deepEqual(plain(await p), ok);
+  const pedidos = m.enviados.filter((e) => e.type === 'jamegao-pedido').map((e) => e.request);
+  assert.deepEqual(pedidos, [{ tipo: 'documentos', novo: true }, { tipo: 'documentos', novo: false }]);
+});
+
+test('sem repetir, o retry repete o mesmo pedido', async () => {
+  const m = mundo();
+  m.carregar();
+  m.respostas.push({ pending: true, promptId: 'p1' }, ok);
+  const p = m.ponte().pedir('pje', 'assinar', { novo: true });
+  await tick();
+  m.resolver('p1', 'retry');
+  await p;
+  const pedidos = m.enviados.filter((e) => e.type === 'jamegao-pedido').map((e) => e.request);
+  assert.deepEqual(pedidos, [{ novo: true }, { novo: true }]);
+});

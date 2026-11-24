@@ -18,14 +18,20 @@ export const OFICIAL_FALSA = path.join(ROOT, 'test/oficial-falsa');
 const tmpDirs = [];
 
 // Cópia de ext/ numa pasta temporária, com http://localhost/* nos "matches"
-// do content script (o manifesto de produção só cobre sites .jus.br).
-export async function makeTestExtension() {
+// do content script (o manifesto de produção só cobre sites .jus.br). Com
+// `pje`, a cópia ganha também `scripting` e `https://*.jus.br/*`, para que os
+// testes registrem os scripts do PJe (test/e2e/ajudas-pje.mjs).
+export async function makeTestExtension({ pje = false } = {}) {
   const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'jamegao-ext-'));
   tmpDirs.push(dir);
   fs.cpSync(EXT, dir, { recursive: true });
   const file = path.join(dir, 'manifest.json');
   const manifest = JSON.parse(fs.readFileSync(file, 'utf8'));
   for (const cs of manifest.content_scripts) cs.matches.push('http://localhost/*', 'http://127.0.0.1/*');
+  if (pje) {
+    if (!manifest.permissions.includes('scripting')) manifest.permissions.push('scripting');
+    manifest.host_permissions = [...new Set([...(manifest.host_permissions ?? []), 'https://*.jus.br/*'])];
+  }
   fs.writeFileSync(file, JSON.stringify(manifest, null, 2));
   return dir;
 }
@@ -248,10 +254,10 @@ async function abrirNavegador(name, { userDataDir, extras }, extDir) {
   }
 }
 
-export async function launch(name = 'chrome', { userDataDir, extras = [] } = {}) {
+export async function launch(name = 'chrome', { userDataDir, extras = [], pje = false } = {}) {
   if (name !== 'chrome' && name !== 'firefox') throw new Error('Navegador desconhecido: ' + name);
 
-  const extDir = await makeTestExtension();
+  const extDir = await makeTestExtension({ pje });
   const server = await startServer();
   const origin = `http://localhost:${server.address().port}`;
   let browser;
