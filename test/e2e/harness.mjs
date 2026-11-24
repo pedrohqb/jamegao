@@ -19,8 +19,12 @@ const tmpDirs = [];
 
 // Cópia de ext/ numa pasta temporária, com http://localhost/* nos "matches"
 // do content script (o manifesto de produção só cobre sites .jus.br). Com
-// `pje`, a cópia ganha também `scripting` e `https://*.jus.br/*`, para que os
-// testes registrem os scripts do PJe (test/e2e/ajudas-pje.mjs).
+// `pje`, a cópia põe `https://*.jus.br/*` também em host_permissions: a
+// permissão, que no manifesto é opcional, vem concedida ao carregar, sem a
+// pergunta do navegador. O fundo então liga o PJe ao iniciar
+// (protocolos/pje/registro.js, acertar). permissions.request responde true sem
+// perguntar no Chrome; no Firefox recusa por falta de gesto do usuário (o
+// clique pelo BiDi não conta), e permissions.remove a devolve de verdade.
 export async function makeTestExtension({ pje = false } = {}) {
   const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'jamegao-ext-'));
   tmpDirs.push(dir);
@@ -29,7 +33,6 @@ export async function makeTestExtension({ pje = false } = {}) {
   const manifest = JSON.parse(fs.readFileSync(file, 'utf8'));
   for (const cs of manifest.content_scripts) cs.matches.push('http://localhost/*', 'http://127.0.0.1/*');
   if (pje) {
-    if (!manifest.permissions.includes('scripting')) manifest.permissions.push('scripting');
     manifest.host_permissions = [...new Set([...(manifest.host_permissions ?? []), 'https://*.jus.br/*'])];
   }
   fs.writeFileSync(file, JSON.stringify(manifest, null, 2));

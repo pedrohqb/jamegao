@@ -3,29 +3,15 @@
 // O navegador precisa ter sido aberto com launch(..., { pje: true }).
 import assert from 'node:assert/strict';
 
-// Registra os scripts do PJe como o fundo fará ao ligar o PJe: os mesmos ids,
-// endereços e opções, a partir de uma página da extensão. Os caminhos levam a
-// barra inicial porque o Firefox resolve os relativos a partir da página que
-// registra (aqui, pages/); no fundo, na raiz, dá no mesmo.
+// Liga o PJe como o fundo faz: registro.registrar, a partir de uma página da
+// extensão (a permissão de *.jus.br já vem concedida na cópia de teste).
 export async function ligarPje(h) {
   const page = await h.browser.newPage();
   try {
     await page.goto(h.extUrl('pages/import.html'));
     await page.evaluate(async () => {
-      const ids = ['jamegao-pje-pagina', 'jamegao-pje-conteudo'];
-      const ja = await chrome.scripting.getRegisteredContentScripts({ ids });
-      if (ja.length) await chrome.scripting.unregisterContentScripts({ ids: ja.map((s) => s.id) });
-      const comum = {
-        matches: ['https://*.jus.br/*'],
-        excludeMatches: chrome.runtime.getManifest().content_scripts[0].matches,
-        runAt: 'document_start',
-        allFrames: true,
-        persistAcrossSessions: true,
-      };
-      await chrome.scripting.registerContentScripts([
-        { id: 'jamegao-pje-pagina', world: 'MAIN', js: ['/protocolos/pje/pagina.js'], ...comum },
-        { id: 'jamegao-pje-conteudo', js: ['/conteudo/ponte.js', '/protocolos/pje/conteudo.js'], ...comum },
-      ]);
+      const { registrar } = await import('/protocolos/pje/registro.js');
+      await registrar(globalThis.browser ?? globalThis.chrome);
     });
   } finally {
     await page.close();
@@ -55,13 +41,14 @@ window.requisicao = (tarefaId, tarefa, { servidor = location.origin + '/pje', ob
 // Abre `url` numa aba nova, com a página imitada servida para a origem de
 // `url`. Os POST são anotados em `envios` e respondidos por `rotas` (recebe o
 // envio e devolve a resposta; sem resposta, 404). As chamadas a :8800 são
-// anotadas em `localhost` e abortadas; o resto é abortado.
+// anotadas em `localhost` e abortadas; o resto é abortado. Com
+// `jamegao: false`, confere que os scripts do PJe não estão na página.
 // O BiDi do Firefox não dá o corpo de forma síncrona.
 const lerCorpo = async (req) => {
   try { return req.postData(); } catch { return req.fetchPostData(); }
 };
 
-export async function abrirPje(h, url, { prototype = false, rotas = () => undefined } = {}) {
+export async function abrirPje(h, url, { prototype = false, rotas = () => undefined, jamegao = true } = {}) {
   const page = await h.browser.newPage();
   const localhost = [];
   const envios = [];
@@ -81,6 +68,7 @@ export async function abrirPje(h, url, { prototype = false, rotas = () => undefi
     return req.abort();
   });
   await page.goto(url);
-  assert.equal(await page.evaluate(() => window.__jamegaoPje), true, 'os scripts do PJe não estão na página');
+  if (jamegao) assert.equal(await page.evaluate(() => window.__jamegaoPje), true, 'os scripts do PJe não estão na página');
+  else assert.equal(await page.evaluate(() => window.__jamegaoPje), undefined, 'os scripts do PJe não deveriam estar na página');
   return { page, localhost, envios };
 }

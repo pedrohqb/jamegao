@@ -11,7 +11,8 @@ button { margin-top: 1rem; padding: .5rem 1.2rem; font-size: 1rem; }
 #status.ok { background: #e3f4e5; color: #14571f; }
 #status.erro { background: #fbe6e6; color: #8a1c1c; }
 [hidden] { display: none !important; }
-#certs { padding-left: 1.2rem; }
+#certs, #pje-recusadas { padding-left: 1.2rem; }
+.pje-cadeia { color: #8a5a00; }
 body.popup { width: 24rem; max-width: 100%; box-sizing: border-box; margin: .5rem auto; }
 .vencido { color: #8a1c1c; font-weight: bold; }
 .vence-logo { color: #8a5a00; font-weight: bold; }

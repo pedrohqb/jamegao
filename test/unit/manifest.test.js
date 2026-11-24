@@ -6,8 +6,12 @@ const m = JSON.parse(fs.readFileSync(new URL('../../ext/manifest.json', import.m
 
 test('manifesto', () => {
   assert.equal(m.manifest_version, 3);
-  assert.deepEqual([...m.permissions].sort(), ['alarms', 'storage']);
+  assert.deepEqual(m.permissions, ['alarms', 'scripting', 'storage']);
   assert.equal(m.host_permissions, undefined);
+  // O PJe é ligado pelo usuário: *.jus.br só como permissão opcional, para que
+  // a atualização não desative a extensão no Chrome.
+  assert.deepEqual(m.optional_host_permissions, ['https://*.jus.br/*']);
+  assert.equal(m.optional_permissions, undefined);
   assert.ok(m.content_scripts[0].matches.every((x) => /^https:\/\/[a-z0-9.]+\.jus\.br\/\*$/.test(x)));
   // Só os e-SAJ em uso (TJSC e TJAM já migraram).
   assert.deepEqual(m.content_scripts[0].matches, [

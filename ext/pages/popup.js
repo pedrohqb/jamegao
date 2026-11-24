@@ -1,11 +1,13 @@
-// Popup: estado do cofre, certificados e decisões por site. Opera direto nos
-// módulos (contexto de página da extensão); nada disso passa por mensagens.
+// Popup: estado do cofre, certificados, decisões por site e o PJe. Opera
+// direto nos módulos (contexto de página da extensão); nada disso passa por
+// mensagens.
 import { createVault } from '../lib/vault.js';
 import { createCerts } from '../lib/certs.js';
 import { createSites } from '../lib/sites.js';
 import { createCredits } from '../lib/credits.js';
 import { browserKv } from '../lib/kv.js';
 import { avisoValidade } from '../lib/validade.js';
+import { ligado, ligarNoGesto, retirar } from '../protocolos/pje/registro.js';
 
 const api = globalThis.browser ?? globalThis.chrome;
 const $ = (id) => document.getElementById(id);
@@ -39,6 +41,14 @@ const checkbox = (cls, label, checked, onChange) => {
   return l;
 };
 
+// O PJe usa a cadeia do certificado, guardada na importação desde que o PJe
+// existe (titular primeiro).
+const marcaPje = (c) => {
+  if (!Array.isArray(c.chainB64) || c.chainB64.length === 0) return 'Importe de novo para usar no PJe.';
+  if (c.chainB64.length === 1) return 'O arquivo deste certificado não trouxe as autoridades certificadoras; o PJe pode recusá-lo.';
+  return null;
+};
+
 // Volta o site a "perguntar de novo".
 async function revogar(origin) {
   await sites.remove(origin);
@@ -66,6 +76,13 @@ async function render() {
       const a = document.createElement('div');
       a.textContent = aviso.texto;
       li.append(a);
+    }
+    const pje = marcaPje(c);
+    if (pje) {
+      const m = document.createElement('div');
+      m.className = 'pje-cadeia';
+      m.textContent = pje;
+      li.append(m);
     }
     li.append(button('remover', 'Remover', async () => { await certs.remove(c.thumbprint); }));
     $('certs').append(li);
@@ -95,6 +112,14 @@ async function render() {
       : button('bloquear', 'Bloquear', async () => { await sites.setAllowed(origin, false); await credits.clear(); }));
     $('sites').append(li);
   }
+  $('pje-ligar').checked = await ligado(api);
+  const recusadas = await kv.session.get('pjeRecusadas', []);
+  $('pje-recusadas').replaceChildren(...recusadas.map(({ origin, tarefa }) => {
+    const li = document.createElement('li');
+    li.textContent = `O PJe pediu uma operação que o Jamegão ainda não faz: ${tarefa} em ${origin}.`;
+    return li;
+  }));
+
   // Contador de renderizações concluídas (os testes esperam por ele).
   document.body.dataset.render = String(++renderizacoes);
 }
@@ -104,6 +129,20 @@ async function render() {
 $('travar').addEventListener('click', () => vault.lock().then(() => credits.clear()).then(render));
 $('importar').addEventListener('click', () => {
   api.tabs.create({ url: api.runtime.getURL('pages/import.html') });
+});
+// Ligar pede a permissão de *.jus.br no próprio clique (o navegador só a pede
+// dentro do gesto do usuário); só as páginas do PJe carregadas depois têm o
+// Jamegão.
+$('pje-ligar').addEventListener('click', () => {
+  const caixa = $('pje-ligar');
+  const acao = caixa.checked
+    ? ligarNoGesto(api).then((ligou) => { $('pje-aviso').hidden = !ligou; })
+    : retirar(api).then(() => { $('pje-aviso').hidden = true; });
+  caixa.disabled = true;
+  acao
+    .catch(() => status('erro', 'Não foi possível concluir a ação.'))
+    .then(render)
+    .finally(() => { caixa.disabled = false; });
 });
 $('esqueci').addEventListener('click', () => { $('esqueci-aviso').hidden = false; });
 $('cancelar-esqueci').addEventListener('click', () => { $('esqueci-aviso').hidden = true; });

@@ -3,7 +3,8 @@
   "name": "Jamegão",
   "version": "0.2.0",
   "description": "Assinatura no e-SAJ com certificado A1, sem instalar programa.",
-  "permissions": ["alarms", "storage"],
+  "permissions": ["alarms", "scripting", "storage"],
+  "optional_host_permissions": ["https://*.jus.br/*"],
   "background": {
     "service_worker": "background.js",
     "scripts": ["background.js"],

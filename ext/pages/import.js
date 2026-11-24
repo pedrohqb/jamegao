@@ -5,7 +5,9 @@ import { createCerts } from '../lib/certs.js';
 import { createVault } from '../lib/vault.js';
 import { browserKv } from '../lib/kv.js';
 import { bytesToB64 } from '../lib/bytes.js';
+import { ligado, ligarNoGesto } from '../protocolos/pje/registro.js';
 
+const api = globalThis.browser ?? globalThis.chrome;
 const $ = (id) => document.getElementById(id);
 const kv = browserKv();
 const vault = createVault({ local: kv.local, session: kv.session, now: () => Date.now() });
@@ -70,6 +72,7 @@ async function importar() {
     });
     $('arquivo').value = '';
     status('ok', `Certificado de ${model.subjectName} importado.`);
+    if (!(await ligado(api).catch(() => true))) $('pje-ligar').hidden = false;
   } catch (err) {
     status('erro', err && err.message === 'senha-curta' ? 'A senha do cofre precisa ter pelo menos 8 caracteres.' : (err && err.message) || 'Falha ao importar o certificado.');
   } finally {
@@ -90,6 +93,16 @@ area.addEventListener('drop', (e) => {
   if (e.dataTransfer && e.dataTransfer.files.length) $('arquivo').files = e.dataTransfer.files;
 });
 $('importar').addEventListener('click', importar);
+// Como no popup: a permissão é pedida no próprio clique.
+$('pje-ligar').addEventListener('click', () => {
+  $('pje-ligar').disabled = true;
+  ligarNoGesto(api)
+    .then((ligou) => {
+      $('pje-ligar').hidden = ligou;
+      $('pje-aviso').hidden = !ligou;
+    }, () => status('erro', 'Não foi possível concluir a ação.'))
+    .finally(() => { $('pje-ligar').disabled = false; });
+});
 
 await refreshVaultFields();
 await refreshList();

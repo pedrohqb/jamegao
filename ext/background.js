@@ -13,6 +13,7 @@ import { createDespacho } from './lib/despacho.js';
 import { createEsaj } from './protocolos/esaj/fundo.js';
 import { createPje } from './protocolos/pje/fundo.js';
 import { createPrompts } from './lib/prompts.js';
+import { acertar as acertarPje } from './protocolos/pje/registro.js';
 
 const api = globalThis.browser ?? globalThis.chrome;
 
@@ -166,6 +167,10 @@ api.windows?.onRemoved.addListener((windowId) => {
 api.runtime.onInstalled.addListener((details) => {
   if (details.reason === 'install') api.tabs.create({ url: api.runtime.getURL('pages/import.html') });
 });
+
+// PJe: a cada carga do fundo, o registro dos scripts acompanha a permissão
+// de *.jus.br (com ela e sem registro, registra; sem ela, retira).
+acertarPje(api).catch(() => {});
 
 // Travamento automático: a cada minuto confere o cofre (vault.isUnlocked trava
 // após 30 min sem uso) e, se travou, descarta os créditos de assinatura.
