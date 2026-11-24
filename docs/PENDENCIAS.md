@@ -115,6 +115,8 @@ Firefox no ambiente de desenvolvimento). Para rodar:
   linha que mudou). A 0.1.2 pode ir junto na próxima mudança de verdade.
 - A release `v0.1.1` no GitHub não precisa ser criada: a `v0.1.2` a
   substitui.
+- A 0.1.2 nunca foi analisada: a Mozilla a desativou quando a 0.2.0 entrou
+  na fila. Saiu do `updates.json`.
 
 ## Envio às lojas (22/11/2026)
 
