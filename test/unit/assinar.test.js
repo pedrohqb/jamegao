@@ -156,3 +156,20 @@ for (const n of [0, -1, 1.5, 501, '3', null, NaN]) {
     assert.equal(await credits.has(O, T), true);
   });
 }
+
+test('motivo em sign: confere e consome o crédito daquele motivo', async () => {
+  await setup();
+  await credits.grant(O, T, 1, 'login');
+  const r = await chamar({ sign: { motivo: 'documentos' } });
+  assert.deepEqual(r, { needs: { sign: { motivo: 'documentos', count: 1, thumbprint: T } } });
+  assert.equal(await credits.has(O, T, 'login'), true);
+  assert.deepEqual(await chamar(), { needs: { sign: { count: 1, thumbprint: T } } }, 'nem o e-SAJ (sem motivo) gasta');
+  assert.deepEqual(await chamar({ sign: { motivo: 'login' } }), { valor: 'ok' });
+  assert.equal(await credits.has(O, T, 'login'), false);
+});
+
+test('crédito do e-SAJ (sem motivo) não serve a pedido com motivo', async () => {
+  await setup({ creditos: 1 });
+  assert.equal((await chamar({ sign: { motivo: 'login' } })).needs.sign.motivo, 'login');
+  assert.deepEqual(await chamar(), { valor: 'ok' });
+});

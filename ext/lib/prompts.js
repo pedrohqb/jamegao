@@ -165,7 +165,7 @@ export function createPrompts({ session, vault, certs, sites, credits, notify, c
           const r = await vault.unlock(typeof password === 'string' ? password : '');
           if (!r.ok) return { error: 'senha', waitMs: r.waitMs };
         }
-        if (rec.needs.sign) await credits.grant(rec.origin, escolhido, rec.needs.sign.count);
+        if (rec.needs.sign) await credits.grant(rec.origin, escolhido, rec.needs.sign.count, rec.needs.sign.motivo ?? '');
         if (rec.needs.escolher) await sites.setCertificado(rec.origin, escolhido);
         if (rec.needs.site) await sites.setAllowed(rec.origin, true);
       } catch {

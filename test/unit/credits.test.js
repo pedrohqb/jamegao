@@ -87,3 +87,23 @@ test('grant e consume concorrentes de pares distintos persistem ambos', async ()
   assert.equal(await c.consume(O2, T), true);
   assert.equal(await c.consume(O2, T), false);
 });
+
+test('crédito é também por motivo; sem motivo, é o de sempre', async () => {
+  const { c } = setup();
+  await c.grant(O, T, 1, 'login');
+  assert.equal(await c.has(O, T), false);
+  assert.equal(await c.has(O, T, 'documentos'), false);
+  assert.equal(await c.consume(O, T, 'documentos'), false);
+  assert.equal(await c.consume(O, T), false);
+  assert.equal(await c.has(O, T, 'login'), true);
+  assert.equal(await c.consume(O, T, 'login'), true);
+  assert.equal(await c.has(O, T, 'login'), false);
+  await c.grant(O, T, 2);
+  assert.equal(await c.has(O, T, ''), true);
+  assert.equal(await c.consume(O, T, 'login'), false);
+  assert.equal(await c.consume(O, T), true);
+  await c.grant(O, T, 1, 'documentos');
+  await c.clear();
+  assert.equal(await c.has(O, T), false);
+  assert.equal(await c.has(O, T, 'documentos'), false);
+});

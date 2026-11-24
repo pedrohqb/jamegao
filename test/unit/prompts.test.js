@@ -353,7 +353,7 @@ test('"Usar o programa instalado": desfecho programa, sem pausa, sem crédito e 
   assert.deepEqual(await prompts.answer(id, { programa: true, allow: true, password: PW }), { done: true });
   assert.deepEqual(sent, [{ tabId: 7, frameId: 0, msg: { type: 'prompt-resolved', id, outcome: 'programa' } }]);
   assert.deepEqual(closed, [4]);
-  assert.equal(await credits.has(O, T), false);
+  assert.equal(await credits.has(O, T, 'login'), false);
   assert.equal(await vault.isUnlocked(), false);
   assert.deepEqual(await sites.list(), []);
   assert.ok((await prompts.open({ programa: true, sign: pjeSign() }, ctx())).id, 'sem pausa');
@@ -364,7 +364,7 @@ test('programa sem needs.programa (e-SAJ) é recusa', async () => {
   const { id } = await prompts.open({ sign: { count: 1, thumbprint: T } }, ctx());
   await prompts.answer(id, { programa: true, allow: true });
   assert.equal(sent[0].msg.outcome.exception.code, 'user_cancelled');
-  assert.equal(await credits.has(O, T), false);
+  assert.equal(await credits.has(O, T, 'login'), false);
   assert.deepEqual(await prompts.open(full(), ctx()), { paused: true });
 });
 
@@ -382,10 +382,10 @@ test('escolha de certificado: describe traz as opções; o escolhido vira padrã
   assert.deepEqual(await prompts.answer(id, { allow: true, password: PW, thumbprint: T2 }), { done: true });
   assert.equal(await sites.certificado(O), T2);
   assert.equal((await sites.get(O)).allowed, true);
-  assert.equal(await credits.has(O, T), false);
-  assert.equal(await credits.consume(O, T2), true);
-  assert.equal(await credits.consume(O, T2), true);
-  assert.equal(await credits.consume(O, T2), false);
+  assert.equal(await credits.has(O, T, 'login'), false);
+  assert.equal(await credits.consume(O, T2, 'login'), true);
+  assert.equal(await credits.consume(O, T2, 'login'), true);
+  assert.equal(await credits.consume(O, T2, 'login'), false);
   assert.equal(sent[0].msg.outcome, 'retry');
 });
 
@@ -406,7 +406,7 @@ test('escolha com certificado fora das opções: erro interno e nada concedido',
     assert.deepEqual(await prompts.answer(id, { allow: true, password: PW, thumbprint }), { done: true, error: 'interno' });
     assert.equal(sent[0].msg.outcome.exception.code, CODES.internal);
     assert.equal(await vault.isUnlocked(), false);
-    assert.equal(await credits.has(O, T), false);
+    assert.equal(await credits.has(O, T, 'login'), false);
     assert.equal(await sites.certificado(O), undefined);
     assert.equal((await sites.get(O)).allowed, undefined);
     assert.equal(await prompts.describe(id), null);
@@ -425,7 +425,7 @@ test('aviso de cadeia: só recusa, sem pausa, nada concedido', async () => {
   const a = await prompts.open(needs(), ctx());
   assert.deepEqual(await prompts.answer(a.id, { allow: true }), { done: true });
   assert.equal(sent[0].msg.outcome.exception.code, 'user_cancelled');
-  assert.equal(await credits.has(O, T), false);
+  assert.equal(await credits.has(O, T, 'login'), false);
   assert.deepEqual(await sites.list(), []);
   const b = await prompts.open(needs(), ctx());
   assert.ok(b.id, 'sem pausa depois de Fechar');
@@ -436,4 +436,17 @@ test('aviso de cadeia: só recusa, sem pausa, nada concedido', async () => {
   await prompts.answer(c.id, { block: true });
   assert.equal((await sites.get(O)).allowed, undefined, 'aviso não bloqueia');
   assert.ok((await prompts.open(needs(), ctx())).id);
+});
+
+test('o aceite concede o crédito com o motivo do pedido; o e-SAJ, sem motivo', async () => {
+  await setup({ unlocked: true });
+  await sites.setAllowed(O, true);
+  const a = await prompts.open({ programa: true, sign: pjeSign({ count: 2 }) }, ctx({ command: 'assinar' }));
+  await prompts.answer(a.id, { allow: true });
+  assert.equal(await credits.has(O, T), false);
+  assert.equal(await credits.has(O, T, 'documentos'), false);
+  assert.equal(await credits.has(O, T, 'login'), true);
+  const b = await prompts.open({ sign: { count: 1, thumbprint: T } }, ctx({ tabId: 8 }));
+  await prompts.answer(b.id, { allow: true });
+  assert.equal(await credits.has(O, T), true);
 });

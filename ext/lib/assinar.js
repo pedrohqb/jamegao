@@ -17,18 +17,20 @@ export function createAssinar({ vault, sites, credits, certs }) {
       throw new PkiError('Quantidade de assinaturas inválida', CODES.badRequest);
     }
     const pedido = { ...sign, count: quantidade, thumbprint };
+    // O crédito só vale para o mesmo motivo que a janela mostrou.
+    const motivo = sign.motivo ?? '';
     const needs = {};
     if ((await sites.get(origin)).allowed !== true) needs.site = true;
     if (!(await vault.isUnlocked())) needs.unlock = true;
     // Se alguma janela vai abrir (site novo, cofre travado ou lote novo), ela
     // mostra de novo o que vai ser assinado, mesmo que sobre crédito (que é
     // substituído).
-    if (needs.site || needs.unlock || novoLote || !(await credits.has(origin, thumbprint))) {
+    if (needs.site || needs.unlock || novoLote || !(await credits.has(origin, thumbprint, motivo))) {
       needs.sign = pedido;
     }
     if (Object.keys(needs).length) return { needs };
     for (let i = 0; i < quantidade; i++) {
-      if (!(await credits.consume(origin, thumbprint))) return { needs: { sign: pedido } };
+      if (!(await credits.consume(origin, thumbprint, motivo))) return { needs: { sign: pedido } };
     }
     let pkcs8;
     try {

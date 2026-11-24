@@ -100,20 +100,20 @@ test('estado: atende com certificado e sem bloqueio; não abre janela', async ()
 
 test('login MD5withRSA (padrão): assina a mensagem em UTF-8 e devolve a cadeia', async () => {
   await setup();
-  await credits.grant(O, A.thumbprint, 1);
+  await credits.grant(O, A.thumbprint, 1, 'login');
   const msg = 'Bem-vindo ao PJe ção';
   const r = await login();
   assert.equal(r.success, true);
   assert.equal(r.response.assinaturas.length, 1);
   assert.ok(confere('RSA-MD5', Buffer.from(msg, 'utf8'), r.response.assinaturas[0]));
   assert.deepEqual(r.response.cadeia, A.chainB64);
-  assert.equal(await credits.has(O, A.thumbprint), false);
+  assert.equal(await credits.has(O, A.thumbprint, 'login'), false);
 });
 
 test('login SHA1withRSA e SHA256withRSA', async () => {
   for (const [algoritmo, alg] of [['SHA1withRSA', 'RSA-SHA1'], ['SHA256withRSA', 'RSA-SHA256'], ['MD5withRSA', 'RSA-MD5']]) {
     await setup();
-    await credits.grant(O, A.thumbprint, 1);
+    await credits.grant(O, A.thumbprint, 1, 'login');
     const r = await login({ mensagem: 'x', algoritmo });
     assert.equal(r.success, true, algoritmo);
     assert.ok(confere(alg, Buffer.from('x'), r.response.assinaturas[0]), algoritmo);
@@ -164,7 +164,7 @@ test('documentos ASN1MD5withRSA (padrão): hexadecimal em qualquer caixa, Base64
     createHash('md5').update(d3).digest('base64'),
   ];
   for (const forma of [resumos, JSON.stringify(resumos)]) {
-    await credits.grant(O, A.thumbprint, 3);
+    await credits.grant(O, A.thumbprint, 3, 'documentos');
     const r = await docs(forma);
     assert.equal(r.success, true);
     assert.equal(r.response.assinaturas.length, 3);
@@ -175,7 +175,7 @@ test('documentos ASN1MD5withRSA (padrão): hexadecimal em qualquer caixa, Base64
 
 test('documentos ASN1SHA256withRSA: 32 bytes', async () => {
   await setup();
-  await credits.grant(O, A.thumbprint, 2);
+  await credits.grant(O, A.thumbprint, 2, 'documentos');
   const d1 = randomBytes(30);
   const d2 = randomBytes(31);
   const r = await docs([hex('sha256', d1), createHash('sha256').update(d2).digest('base64')], { algoritmo: 'ASN1SHA256withRSA' });
@@ -200,10 +200,11 @@ test('needs leva motivo, sistema PJe e o programa instalado; um certificado não
 
 test('lote novo: documentos com novo abre janela mesmo com crédito; login não', async () => {
   await setup();
-  await credits.grant(O, A.thumbprint, 5);
+  await credits.grant(O, A.thumbprint, 5, 'documentos');
+  await credits.grant(O, A.thumbprint, 1, 'login');
   const r = await docs([hex('md5', 'a')], { novo: true });
   assert.equal(r.needs.sign.count, 1);
-  assert.equal(await credits.has(O, A.thumbprint), true, 'nada foi gasto');
+  assert.equal(await credits.has(O, A.thumbprint, 'documentos'), true, 'nada foi gasto');
   assert.equal((await docs([hex('md5', 'a')], { novo: 'sim' })).success, true);
   assert.equal((await login({ novo: true })).success, true);
 });
@@ -214,12 +215,12 @@ test('sem cadeia: aviso antes de site, cofre e crédito', async () => {
     needs: { aviso: 'semCadeia', sign: { motivo: 'login', sistema: 'PJe', count: 1, thumbprint: A.thumbprint } },
   });
   await setup({ semCadeia: true });
-  await credits.grant(O, A.thumbprint, 2);
+  await credits.grant(O, A.thumbprint, 2, 'documentos');
   const r = await docs([hex('md5', 'a'), hex('md5', 'b')]);
   assert.deepEqual(r.needs, {
     aviso: 'semCadeia', sign: { motivo: 'documentos', sistema: 'PJe', count: 2, thumbprint: A.thumbprint },
   });
-  assert.equal(await credits.has(O, A.thumbprint), true, 'nada foi gasto');
+  assert.equal(await credits.has(O, A.thumbprint, 'documentos'), true, 'nada foi gasto');
 });
 
 test('nenhum certificado: certificate_not_found', async () => {
@@ -229,18 +230,18 @@ test('nenhum certificado: certificate_not_found', async () => {
 
 test('mais de um certificado sem preferência: escolha com o primeiro marcado, mesmo com crédito', async () => {
   await setup({ lista: [A, B] });
-  await credits.grant(O, A.thumbprint, 1);
+  await credits.grant(O, A.thumbprint, 1, 'login');
   const r = await login();
   assert.deepEqual(r.needs.escolher, { opcoes: [A.thumbprint, B.thumbprint], marcado: A.thumbprint });
   assert.equal(r.needs.sign.thumbprint, A.thumbprint);
   assert.equal(r.needs.programa, true);
-  assert.equal(await credits.has(O, A.thumbprint), true);
+  assert.equal(await credits.has(O, A.thumbprint, 'login'), true);
 });
 
 test('mais de um certificado com preferência: login com crédito assina direto com o preferido', async () => {
   await setup({ lista: [A, B] });
   await sites.setCertificado(O, B.thumbprint);
-  await credits.grant(O, B.thumbprint, 1);
+  await credits.grant(O, B.thumbprint, 1, 'login');
   const r = await login({ mensagem: 'y' });
   assert.equal(r.success, true);
   assert.ok(confere('RSA-MD5', Buffer.from('y'), r.response.assinaturas[0], B));
@@ -254,7 +255,7 @@ test('mais de um certificado com preferência: login com crédito assina direto 
 test('preferência que não existe mais: volta ao primeiro e abre a escolha', async () => {
   await setup({ lista: [A, B] });
   await sites.setCertificado(O, 'f'.repeat(40));
-  await credits.grant(O, A.thumbprint, 1);
+  await credits.grant(O, A.thumbprint, 1, 'login');
   const r = await login();
   assert.deepEqual(r.needs.escolher, { opcoes: [A.thumbprint, B.thumbprint], marcado: A.thumbprint });
 });
@@ -281,7 +282,7 @@ test('registrarTarefa guarda na sessão sem repetir, até 20', async () => {
 test('só contam certificados com cadeia: um com e um sem assina com o que tem, sem escolha', async () => {
   for (const [com, sem] of [[A, B], [B, A]]) {
     await setup({ lista: [A, B], semCadeiaEm: [sem] });
-    await credits.grant(O, com.thumbprint, 1);
+    await credits.grant(O, com.thumbprint, 1, 'login');
     const r = await login({ mensagem: 'z' });
     assert.equal(r.success, true);
     assert.ok(confere('RSA-MD5', Buffer.from('z'), r.response.assinaturas[0], com));
@@ -297,7 +298,7 @@ test('só contam certificados com cadeia: um com e um sem assina com o que tem, 
 test('preferência gravada num certificado sem cadeia é ignorada', async () => {
   await setup({ lista: [A, B], semCadeiaEm: [A] });
   await sites.setCertificado(O, A.thumbprint);
-  await credits.grant(O, B.thumbprint, 1);
+  await credits.grant(O, B.thumbprint, 1, 'login');
   const r = await login({ mensagem: 'w' });
   assert.equal(r.success, true);
   assert.ok(confere('RSA-MD5', Buffer.from('w'), r.response.assinaturas[0], B));
@@ -309,4 +310,26 @@ test('vários certificados, nenhum com cadeia: aviso; estado continua atendendo'
     needs: { aviso: 'semCadeia', sign: { motivo: 'login', sistema: 'PJe', count: 1, thumbprint: A.thumbprint } },
   });
   assert.deepEqual(await pedir('estado', {}), { success: true, response: { atender: true } });
+});
+
+test('crédito do login não serve para documentos, e o de documentos não serve para login', async () => {
+  await setup();
+  await credits.grant(O, A.thumbprint, 1, 'login');
+  const r = await docs([hex('md5', 'a')], { novo: false });
+  assert.deepEqual(r.needs.sign, { motivo: 'documentos', sistema: 'PJe', count: 1, thumbprint: A.thumbprint });
+  assert.equal(await credits.has(O, A.thumbprint, 'login'), true, 'o crédito do login não foi gasto');
+  assert.equal((await login()).success, true);
+
+  await setup();
+  await credits.grant(O, A.thumbprint, 1, 'documentos');
+  const s = await login();
+  assert.deepEqual(s.needs.sign, { motivo: 'login', sistema: 'PJe', count: 1, thumbprint: A.thumbprint });
+  assert.equal(await credits.has(O, A.thumbprint, 'documentos'), true);
+  assert.equal((await docs([hex('md5', 'a')])).success, true);
+
+  await setup();
+  await credits.grant(O, A.thumbprint, 1); // crédito do e-SAJ (sem motivo)
+  assert.ok((await login()).needs);
+  assert.ok((await docs([hex('md5', 'a')])).needs);
+  assert.equal(await credits.has(O, A.thumbprint), true);
 });
