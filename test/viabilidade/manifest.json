@@ -1,0 +1,13 @@
+{
+  "manifest_version": 3,
+  "name": "Viabilidade do registro dinâmico (teste)",
+  "version": "1.0.0",
+  "description": "Prova que registerContentScripts com world MAIN funciona; descartável.",
+  "browser_specific_settings": { "gecko": { "id": "viabilidade@jamegao.test" } },
+  "permissions": ["scripting"],
+  "host_permissions": ["https://*.jus.br/*"],
+  "background": {
+    "service_worker": "background.js",
+    "scripts": ["background.js"]
+  }
+}
