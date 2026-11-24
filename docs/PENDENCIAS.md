@@ -84,6 +84,21 @@ Firefox no ambiente de desenvolvimento). Para rodar:
 - Firefox mínimo 140 e Android mínimo 142 (exigidos pelo
   `data_collection_permissions`), o que cala os dois alertas da validação.
 
+## Versão 0.2.0 (ramo `android`): Firefox do Android
+
+- Sem `api.windows` (Firefox do Android), a confirmação abre numa aba; ao
+  responder, a aba fecha e o foco volta à aba do e-SAJ; fechar a aba de
+  confirmação recusa e pausa o site, e fechar a aba do e-SAJ fecha a
+  confirmação junto. No computador nada muda (continua janela).
+- Páginas com `viewport` para tela de celular; ícone com largura limitada.
+- Testes de unidade cobrem o modo aba; a suíte de ponta a ponta roda no
+  Chrome (com janelas), então o modo aba só é provado no teste manual pelo
+  Waydroid (`docs/TESTES.md`, seção Android).
+- A declaração `gecko_android` (mínimo 142) fica: agora o Android é suportado
+  de verdade.
+- Falta: teste de Pedro no Waydroid; depois, enviar às duas lojas (Mozilla
+  listada; Chrome junto, pelo `viewport` e pela largura do ícone).
+
 ## Versão 0.1.2 (24/11/2026): listada na Mozilla
 
 - Igual à 0.1.1, sem `update_url` no manifesto: vai à Mozilla como "Neste

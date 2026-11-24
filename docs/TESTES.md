@@ -112,6 +112,47 @@ no Firefox.
 
 Não mande a senha do cofre nem o PFX.
 
+## Android (Firefox do Android, pelo Waydroid)
+
+Desde a 0.2.0, sem janelas (Firefox do Android), a confirmação abre numa aba,
+que fecha sozinha depois da resposta e devolve você à aba do e-SAJ. Fechar a
+aba de confirmação vale como recusar.
+
+### Preparar (uma vez)
+
+1. Com o Waydroid rodando (`waydroid session start` e `waydroid show-full-ui`),
+   baixe o Firefox para Android na versão **x86_64**, em
+   `https://ftp.mozilla.org/pub/fenix/releases/` (arquivo
+   `fenix-<versão>.multi.android-x86_64.apk`), e instale:
+   `waydroid app install fenix-<versão>.multi.android-x86_64.apk`
+2. No Firefox do Android: **Configurações → Depuração remota via USB**, ligado.
+3. Ligue o adb ao Waydroid: `waydroid status` mostra o IP; então
+   `adb connect <IP>:5555` e confira com `adb devices`.
+4. Copie o PFX para o Android: `adb push certificado.pfx /sdcard/Download/`.
+
+### Carregar a versão de teste (sem loja)
+
+Na pasta do repositório (ramo `android`), com o Node instalado:
+
+    npx web-ext run -t firefox-android --adb-device <IP>:5555 --firefox-apk org.mozilla.firefox -s ext
+
+O Firefox abre no Waydroid com o Jamegão carregado como temporário (some ao
+fechar). Se não abrir, tente acrescentar
+`--firefox-apk-component org.mozilla.fenix.HomeActivity`.
+
+### Roteiro
+
+1. A página de importação abre: escolha o PFX em **Download**, a senha dele
+   e crie a senha do cofre.
+2. Abra o e-SAJ do TJSP e entre por certificado. Se o portal não mostrar a
+   aba de certificado, use **⋮ → Site para computador**.
+3. Esperado: abre uma **aba** "Confirmação - Jamegão"; ao confirmar, ela fecha
+   e você volta ao e-SAJ, que conclui o login.
+4. Repita fechando a aba de confirmação em vez de responder: o e-SAJ recebe
+   o cancelamento.
+5. Toque no ícone do Jamegão (menu **⋮ → Extensões → Jamegão**): a página
+   do ícone abre e cabe na tela.
+
 ## Parte 2 — Suíte automática
 
 Precisa de Node 22 ou mais novo e de Chrome ou Chromium instalado.

@@ -1,7 +1,7 @@
 {
   "manifest_version": 3,
   "name": "Jamegão",
-  "version": "0.1.2",
+  "version": "0.2.0",
   "description": "Assinatura no e-SAJ com certificado A1, sem instalar programa.",
   "permissions": ["alarms", "storage"],
   "background": {

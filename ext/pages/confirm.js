@@ -12,7 +12,17 @@ const status = (cls, msg) => {
   $('status').textContent = msg;
 };
 const send = (msg) => api.runtime.sendMessage({ ...msg, id });
-const shut = () => { finished = true; window.close(); };
+// Numa aba (Firefox do Android, sem api.windows), window.close() não fecha o
+// que o script não abriu; aí a própria aba se remove. No computador a
+// confirmação é sempre uma janela, e basta window.close().
+const fechar = () => {
+  window.close();
+  if (api.windows) return;
+  setTimeout(() => {
+    Promise.resolve(api.tabs?.getCurrent?.()).then((t) => t && api.tabs.remove(t.id)).catch(() => {});
+  }, 200);
+};
+const shut = () => { finished = true; fechar(); };
 
 async function init() {
   const d = await send({ type: 'prompt-describe' });
@@ -62,7 +72,7 @@ async function responder(allow, block = false) {
     if (aviso) {
       status('erro', aviso);
       finished = true; // já resolvido no fundo; fechar não recusa de novo
-      setTimeout(() => window.close(), 4000);
+      setTimeout(fechar, 4000);
       return;
     }
     shut();

@@ -24,7 +24,7 @@ test('manifesto', () => {
 
 test('valores fixos', () => {
   assert.equal(m.name, 'Jamegão');
-  assert.equal(m.version, '0.1.2');
+  assert.equal(m.version, '0.2.0');
   assert.equal(m.minimum_chrome_version, '121');
   assert.equal(m.action.default_popup, 'pages/popup.html');
   assert.deepEqual(m.background, { service_worker: 'background.js', scripts: ['background.js'], type: 'module' });

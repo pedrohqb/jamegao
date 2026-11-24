@@ -9,6 +9,10 @@
         {
           "version": "0.1.2",
           "update_link": "https://github.com/pedrohqb/jamegao/releases/download/v0.1.2/jamegao-0.1.2-firefox.xpi"
+        },
+        {
+          "version": "0.2.0",
+          "update_link": "https://github.com/pedrohqb/jamegao/releases/download/v0.2.0/jamegao-0.2.0-firefox.xpi"
         }
       ]
     }

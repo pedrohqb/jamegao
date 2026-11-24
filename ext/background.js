@@ -45,6 +45,11 @@ const modules = () => {
     session: kv.session, vault, certs, sites, credits, now,
     notify: (tabId, frameId, msg) => api.tabs.sendMessage(tabId, msg, { frameId }),
     closeWindow: (windowId) => api.windows.remove(windowId),
+    // Modo aba: fecha a confirmação e devolve o foco à aba do site.
+    closeTab: async (confirmTabId, originTabId) => {
+      await api.tabs.remove(confirmTabId);
+      try { await api.tabs.update(originTabId, { active: true }); } catch { /* aba do site fechada */ }
+    },
   });
   return { vault, certs, sites, credits, prompts };
 };
@@ -59,12 +64,16 @@ async function atenderPedido(msg, sender) {
   });
   if (opened.busy) return fail(CODES.cancelled, 'Há uma confirmação pendente nesta aba.');
   if (opened.paused) return fail(CODES.cancelled, 'Pedido recusado há pouco. Tente de novo em alguns segundos.');
+  const url = api.runtime.getURL('pages/confirm.html') + '?id=' + encodeURIComponent(opened.id);
   try {
-    const win = await api.windows.create({
-      url: api.runtime.getURL('pages/confirm.html') + '?id=' + encodeURIComponent(opened.id),
-      type: 'popup', width: 440, height: 520,
-    });
-    await m.prompts.setWindow(opened.id, win.id);
+    if (typeof api.windows?.create === 'function') {
+      const win = await api.windows.create({ url, type: 'popup', width: 440, height: 520 });
+      await m.prompts.setWindow(opened.id, win.id);
+    } else {
+      // Firefox do Android: não há janelas; a confirmação abre numa aba.
+      const tab = await api.tabs.create({ url, active: true });
+      await m.prompts.setTab(opened.id, tab.id);
+    }
   } catch {
     await m.prompts.abandon(opened.id);
     return fail(CODES.cancelled, 'Não foi possível abrir a janela de confirmação.');
@@ -126,7 +135,8 @@ api.tabs.onRemoved.addListener((tabId) => {
   modules().prompts.tabClosed(tabId).catch(() => {});
 });
 
-api.windows.onRemoved.addListener((windowId) => {
+// No Firefox do Android não há api.windows.
+api.windows?.onRemoved.addListener((windowId) => {
   modules().prompts.closedWindow(windowId).catch(() => {});
 });
 

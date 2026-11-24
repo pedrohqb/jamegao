@@ -1,7 +1,8 @@
 // Pedidos de confirmação ao usuário. Todo o estado fica em storage.session
 // (chave "prompts"), porque o service worker pode morrer a qualquer momento.
 // Este módulo não abre janela: quem abre é o fundo, que depois grava o
-// windowId aqui (setWindow) para ligar o fechamento da janela ao pedido.
+// windowId aqui (setWindow) para ligar o fechamento da janela ao pedido. Sem
+// janelas (Firefox do Android), a confirmação abre numa aba (setTab).
 import { CODES, fail, ok } from './protocol.js';
 import { createExclusive } from './exclusive.js';
 
@@ -16,7 +17,7 @@ const exclusive = createExclusive('jamegao-prompts');
 
 const CANCELLED = () => fail(CODES.cancelled, 'Operação cancelada.');
 
-export function createPrompts({ session, vault, certs, sites, credits, notify, closeWindow, now = () => Date.now() }) {
+export function createPrompts({ session, vault, certs, sites, credits, notify, closeWindow, closeTab, now = () => Date.now() }) {
   const readAll = () => session.get('prompts', {});
   const writeAll = (all) => session.set('prompts', all);
 
@@ -30,6 +31,9 @@ export function createPrompts({ session, vault, certs, sites, credits, notify, c
     try { await notify(rec.tabId, rec.frameId, { type: 'prompt-resolved', id: rec.id, outcome }); } catch { /* aba fechada */ }
     if (rec.windowId !== undefined && closeWindow) {
       try { await closeWindow(rec.windowId); } catch { /* janela já fechada */ }
+    }
+    if (rec.confirmTabId !== undefined && closeTab) {
+      try { await closeTab(rec.confirmTabId, rec.tabId); } catch { /* aba já fechada */ }
     }
   }
 
@@ -79,6 +83,14 @@ export function createPrompts({ session, vault, certs, sites, credits, notify, c
       const all = await readAll();
       if (!all[id]) return false;
       all[id].windowId = windowId;
+      await writeAll(all);
+      return true;
+    }),
+
+    setTab: (id, confirmTabId) => exclusive(async () => {
+      const all = await readAll();
+      if (!all[id]) return false;
+      all[id].confirmTabId = confirmTabId;
       await writeAll(all);
       return true;
     }),
@@ -144,8 +156,13 @@ export function createPrompts({ session, vault, certs, sites, credits, notify, c
       await refuse(rec, { pause: tabId === undefined || timedOut(rec) });
     }),
 
+    // A aba fechada pode ser a da confirmação (o usuário desistiu: recusa e
+    // pausa) ou a do site (recusa sem pausa, e a confirmação fecha junto).
     tabClosed: (tabId) => exclusive(async () => {
-      for (const p of Object.values(await readAll())) if (p.tabId === tabId) await refuse(p);
+      for (const p of Object.values(await readAll())) {
+        if (p.confirmTabId === tabId) await refuse({ ...p, confirmTabId: undefined }, { pause: true });
+        else if (p.tabId === tabId) await refuse(p);
+      }
     }),
 
     closedWindow: (windowId) => exclusive(async () => {

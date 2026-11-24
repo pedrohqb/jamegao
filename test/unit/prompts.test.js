@@ -17,7 +17,7 @@ import { memoryKv, fakeClock } from './helpers.js';
 const forge = createRequire(import.meta.url)('node-forge');
 const O = 'https://exemplo.com.br';
 const PW = 'senha-do-cofre';
-let T, model, certB64, pkcs8, kv, clock, vault, sites, credits, prompts, sent, closed;
+let T, model, certB64, pkcs8, kv, clock, vault, sites, credits, prompts, sent, closed, closedTabs;
 
 before(async () => {
   const r = parsePfx(forge, new Uint8Array(fs.readFileSync(new URL('../fix/pf-moderno.pfx', import.meta.url))), 'senha123');
@@ -40,10 +40,12 @@ async function setup({ unlocked = false } = {}) {
   credits = createCredits({ session: kv.session, now: clock.now });
   sent = [];
   closed = [];
+  closedTabs = [];
   prompts = createPrompts({
     session: kv.session, vault, certs, sites, credits, now: clock.now,
     notify: async (tabId, frameId, msg) => { sent.push({ tabId, frameId, msg }); },
     closeWindow: async (w) => { closed.push(w); },
+    closeTab: async (confirmTabId, originTabId) => { closedTabs.push([confirmTabId, originTabId]); },
   });
 }
 const ctx = (over = {}) => ({ origin: O, tabId: 7, frameId: 0, command: 'signData', ...over });
@@ -302,4 +304,34 @@ test('bloqueio que não grava avisa a janela', async () => {
   const { id } = await prompts.open(full(), ctx());
   assert.deepEqual(await prompts.answer(id, { block: true }), { done: true, error: 'bloqueio' });
   assert.equal(sent[0].msg.outcome.exception.code, 'user_cancelled');
+});
+
+
+// Sem janelas (Firefox do Android): a confirmação abre numa aba.
+test('modo aba: ao responder, fecha a aba de confirmação e volta para a do site', async () => {
+  await setup({ unlocked: true });
+  const { id } = await prompts.open(full(), ctx());
+  assert.equal(await prompts.setTab(id, 99), true);
+  await prompts.answer(id, { allow: true });
+  assert.deepEqual(closedTabs, [[99, 7]]);
+  assert.deepEqual(closed, []);
+  assert.equal(sent[0].msg.outcome, 'retry');
+});
+
+test('modo aba: fechar a aba de confirmação recusa e pausa; a do site segue as regras de sempre', async () => {
+  await setup();
+  const a = await prompts.open(full(), ctx());
+  await prompts.setTab(a.id, 99);
+  await prompts.tabClosed(99); // o usuário fechou a aba de confirmação
+  assert.equal(sent.length, 1);
+  assert.equal(sent[0].msg.outcome.exception.code, 'user_cancelled');
+  assert.deepEqual(closedTabs, [], 'a aba já fechada não é fechada de novo');
+  assert.deepEqual(await prompts.open(full(), ctx()), { paused: true });
+
+  clock.advance(REFUSAL_PAUSE_MS);
+  const b = await prompts.open(full(), ctx());
+  await prompts.setTab(b.id, 98);
+  await prompts.tabClosed(7); // a aba do site fechou
+  assert.deepEqual(closedTabs, [[98, 7]], 'a confirmação órfã fecha junto');
+  assert.ok((await prompts.open(full(), ctx({ tabId: 8 }))).id, 'aba que sai não pausa o site');
 });
