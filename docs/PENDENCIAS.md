@@ -96,8 +96,12 @@ Firefox no ambiente de desenvolvimento). Para rodar:
   Waydroid (`docs/TESTES.md`, seção Android).
 - A declaração `gecko_android` (mínimo 142) fica: agora o Android é suportado
   de verdade.
-- Falta: teste de Pedro no Waydroid; depois, enviar às duas lojas (Mozilla
-  listada; Chrome junto, pelo `viewport` e pela largura do ícone).
+- Testada por Pedro no Waydroid (Firefox do Android x86_64, 24/11/2026):
+  importação do PFX, login no TJSP com a confirmação em aba (fecha e volta ao
+  e-SAJ) e recusa fechando a aba. Na recusa, o e-SAJ mostra o mesmo CERT-99
+  genérico que mostra ao clicar em Recusar no computador.
+- Falta: enviar às duas lojas (Mozilla listada; Chrome junto, pelo
+  `viewport` e pela largura do ícone).
 
 ## Versão 0.1.2 (24/11/2026): listada na Mozilla
 
