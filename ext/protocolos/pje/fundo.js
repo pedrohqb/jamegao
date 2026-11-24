@@ -92,22 +92,24 @@ export function createPje({ session }) {
       const { tipo, itens, assinarItem } = lerPedido(request);
       const lista = await certs.list();
       if (!lista.length) throw new PkiError('Nenhum certificado importado no Jamegão', CODES.notFound);
-      // Com mais de um certificado, vale o último escolhido nesta origem; sem
-      // ele (ou se foi removido), a janela abre para escolher.
-      let entry = lista[0];
+      const sign = { motivo: tipo, sistema: 'PJe' };
+      // Só contam os certificados com cadeia: os importados antes do suporte
+      // ao PJe não têm, e o PJe não os aceita.
+      const comCadeia = lista.filter((e) => Array.isArray(e.chainB64) && e.chainB64.length > 0);
+      if (!comCadeia.length) {
+        return { needs: { aviso: 'semCadeia', sign: { ...sign, count: itens.length, thumbprint: lista[0].thumbprint } } };
+      }
+      // Com mais de um, vale o último escolhido nesta origem; sem ele (ou se
+      // foi removido ou não tem cadeia), a janela abre para escolher.
+      let entry = comCadeia[0];
       let escolher = null;
       let semPreferido = false;
-      if (lista.length > 1) {
+      if (comCadeia.length > 1) {
         const preferido = await sites.certificado(origin);
-        const achado = lista.find((e) => e.thumbprint === preferido);
+        const achado = comCadeia.find((e) => e.thumbprint === preferido);
         semPreferido = !achado;
-        entry = achado ?? lista[0];
-        escolher = { opcoes: lista.map((e) => e.thumbprint), marcado: entry.thumbprint };
-      }
-      const sign = { motivo: tipo, sistema: 'PJe' };
-      // Importado antes do suporte ao PJe: sem cadeia, o PJe não aceita.
-      if (!Array.isArray(entry.chainB64) || !entry.chainB64.length) {
-        return { needs: { aviso: 'semCadeia', sign: { ...sign, count: itens.length, thumbprint: entry.thumbprint } } };
+        entry = achado ?? comCadeia[0];
+        escolher = { opcoes: comCadeia.map((e) => e.thumbprint), marcado: entry.thumbprint };
       }
       const r = await assinar(
         {

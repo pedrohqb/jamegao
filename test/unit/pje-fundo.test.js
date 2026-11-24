@@ -41,14 +41,14 @@ const guardar = async (c, { semCadeia = false } = {}) => certs.put({
   importedAt: 'x', ...(semCadeia ? {} : { chainB64: c.chainB64 }),
 });
 
-async function setup({ unlocked = true, allowed = true, lista = [A], semCadeia = false } = {}) {
+async function setup({ unlocked = true, allowed = true, lista = [A], semCadeia = false, semCadeiaEm = [] } = {}) {
   kv = memoryKv();
   clock = fakeClock(1_000_000);
   vault = createVault({ ...kv, now: clock.now, iterations: 1000 });
   await vault.create('senha-do-cofre');
   certs = createCerts();
   for (const e of await certs.list()) await certs.remove(e.thumbprint);
-  for (const c of lista) await guardar(c, { semCadeia });
+  for (const c of lista) await guardar(c, { semCadeia: semCadeia || semCadeiaEm.includes(c) });
   if (!unlocked) await vault.lock();
   sites = createSites(kv);
   if (allowed) await sites.setAllowed(O, true);
@@ -276,4 +276,37 @@ test('registrarTarefa guarda na sessão sem repetir, até 20', async () => {
   for (const tarefa of [undefined, '', 42, 'x'.repeat(201)]) {
     assert.equal((await pedir('registrarTarefa', { tarefa })).exception.code, 'bad_request');
   }
+});
+
+test('só contam certificados com cadeia: um com e um sem assina com o que tem, sem escolha', async () => {
+  for (const [com, sem] of [[A, B], [B, A]]) {
+    await setup({ lista: [A, B], semCadeiaEm: [sem] });
+    await credits.grant(O, com.thumbprint, 1);
+    const r = await login({ mensagem: 'z' });
+    assert.equal(r.success, true);
+    assert.ok(confere('RSA-MD5', Buffer.from('z'), r.response.assinaturas[0], com));
+    assert.deepEqual(r.response.cadeia, com.chainB64);
+    // Sem crédito: janela sem escolha, com o certificado que tem cadeia.
+    const s = await login();
+    assert.equal(s.needs.escolher, undefined);
+    assert.equal(s.needs.aviso, undefined);
+    assert.equal(s.needs.sign.thumbprint, com.thumbprint);
+  }
+});
+
+test('preferência gravada num certificado sem cadeia é ignorada', async () => {
+  await setup({ lista: [A, B], semCadeiaEm: [A] });
+  await sites.setCertificado(O, A.thumbprint);
+  await credits.grant(O, B.thumbprint, 1);
+  const r = await login({ mensagem: 'w' });
+  assert.equal(r.success, true);
+  assert.ok(confere('RSA-MD5', Buffer.from('w'), r.response.assinaturas[0], B));
+});
+
+test('vários certificados, nenhum com cadeia: aviso; estado continua atendendo', async () => {
+  await setup({ lista: [A, B], semCadeia: true });
+  assert.deepEqual(await login(), {
+    needs: { aviso: 'semCadeia', sign: { motivo: 'login', sistema: 'PJe', count: 1, thumbprint: A.thumbprint } },
+  });
+  assert.deepEqual(await pedir('estado', {}), { success: true, response: { atender: true } });
 });
