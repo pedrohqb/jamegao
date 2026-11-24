@@ -2,19 +2,21 @@
 // scripts (protocolos/pje/registro.js), pelo popup e pela importação.
 //
 // A cópia de teste traz *.jus.br em host_permissions (harness, `pje: true`):
-// a permissão vem concedida e o fundo liga o PJe ao iniciar. No Chrome,
-// permissions.request responde true sem perguntar e permissions.remove é
-// recusado (a permissão é obrigatória na cópia): desligar fica só em retirar o
-// registro. No Firefox, permissions.request exige gesto do usuário de verdade
-// (o clique pelo BiDi não conta) e permissions.remove devolve a permissão:
-// os testes que ligam pelo clique são só do Chrome.
+// a permissão vem concedida, mas o PJe só liga com a escolha do usuário
+// (`pjeLigado`). No Chrome, permissions.request responde true sem perguntar e
+// permissions.remove é recusado (a permissão é obrigatória na cópia): a
+// escolha guardada é o que mantém o PJe desligado. No Firefox,
+// permissions.request exige gesto do usuário de verdade (o clique pelo BiDi
+// não conta) e permissions.remove devolve a permissão: lá o PJe é ligado por
+// ligarPje (como o clique, menos o pedido), e os testes que ligam pelo
+// clique são só do Chrome.
 import { test, before, after, afterEach } from 'node:test';
 import assert from 'node:assert/strict';
 import fs from 'node:fs';
 import os from 'node:os';
 import path from 'node:path';
 import { launch } from './harness.mjs';
-import { abrirPje } from './ajudas-pje.mjs';
+import { abrirPje, ligarPje } from './ajudas-pje.mjs';
 import { gerar } from '../fix/gerar.mjs';
 
 const browserName = process.env.BROWSER || 'chrome';
@@ -108,16 +110,70 @@ async function importar(arquivo, senhaPfx) {
   return page;
 }
 
-test('com a permissão concedida, o fundo registra os scripts do PJe ao iniciar', async () => {
-  await esperarRegistro(LIGADOS);
-  await tjmaAtendido();
+const escolha = () => naExtensao(() => import('/lib/kv.js').then(({ idbKv }) => idbKv().get('pjeLigado')));
+
+// Chrome: encerra o service worker (como em assinar.test.mjs,
+// ServiceWorker.stopAllWorkers numa sessão CDP de página) e acorda um novo com
+// uma mensagem qualquer; o fundo novo acerta o registro ao iniciar.
+async function reiniciarFundo() {
+  const page = await nova('about:blank');
+  const cdp = await page.createCDPSession();
+  await cdp.send('ServiceWorker.enable');
+  await cdp.send('ServiceWorker.stopAllWorkers');
+  const vivo = () => h.browser.targets().some((t) => t.type() === 'service_worker' && t.url().includes('background.js'));
+  for (let i = 0; i < 50 && vivo(); i++) await new Promise((res) => setTimeout(res, 100));
+  assert.equal(vivo(), false, 'o service worker deveria ter parado');
+  await naExtensao(() => chrome.runtime.sendMessage({ type: 'acordar' }).catch(() => null));
+  for (let i = 0; i < 50 && !vivo(); i++) await new Promise((res) => setTimeout(res, 100));
+  assert.equal(vivo(), true, 'o service worker deveria ter voltado');
+}
+
+// Ligado para os testes seguintes: no Chrome pelo clique (teste anterior); no
+// Firefox, onde o clique não liga, por ligarPje.
+async function garantirLigado() {
+  if (JSON.stringify(await registrados()) !== JSON.stringify(LIGADOS)) await ligarPje(h);
+  assert.deepEqual(await registrados(), LIGADOS);
+  assert.equal(await escolha(), true);
+}
+
+test('com a permissão, mas sem a escolha do usuário, o PJe vem desligado', async () => {
+  await new Promise((r) => setTimeout(r, 500)); // tempo para o acerto do fundo ao iniciar
+  assert.equal(await concedida(), true);
+  assert.equal(await escolha(), undefined);
+  assert.deepEqual(await registrados(), []);
   const popup = await abrirPopup();
-  assert.equal(await marcado(popup), true);
+  assert.equal(await marcado(popup), false);
+  await tjmaNaoAtendido();
+});
+
+// O que o Firefox faz com o clique do BiDi: recusa o pedido de permissão, e o
+// popup avisa e segue desligado (com usuário de verdade, o clique é gesto).
+test('Firefox: clique sem gesto de verdade, o pedido é recusado e o PJe segue desligado', { skip: browserName !== 'firefox' && 'só no Firefox' }, async () => {
+  const popup = await abrirPopup();
+  assert.equal(await marcado(popup), false);
+  const render = await popup.$eval('body', (b) => Number(b.dataset.render));
+  await popup.click('#pje-ligar');
+  await popup.waitForSelector(`body:not([data-render="${render}"])`);
+  assert.equal(await marcado(popup), false);
+  assert.equal(await popup.$eval('#status', (e) => `${e.className}|${e.textContent}`), 'erro|Não foi possível concluir a ação.');
   assert.equal(await popup.$eval('#pje-aviso', (e) => e.hidden), true);
+  assert.deepEqual(await registrados(), []);
+  assert.equal(await escolha(), undefined);
+});
+
+test('ligar pelo popup: o TJMA passa a ser atendido', { skip: SO_CHROME }, async () => {
+  const popup = await abrirPopup();
+  assert.equal(await marcado(popup), false);
+  await popup.click('#pje-ligar');
+  await popup.waitForSelector('#pje-ligar:checked');
+  assert.equal(await popup.$eval('#pje-aviso', (e) => (e.hidden ? '' : e.textContent.trim())), RECARREGUE);
+  assert.deepEqual(await registrados(), LIGADOS);
+  assert.equal(await escolha(), true);
+  await tjmaAtendido();
 });
 
 test('página do e-SAJ não recebe os scripts do PJe', async () => {
-  assert.deepEqual(await registrados(), LIGADOS);
+  await garantirLigado();
   const page = await h.browser.newPage();
   abertas.push(page);
   await page.setRequestInterception(true);
@@ -131,6 +187,9 @@ test('página do e-SAJ não recebe os scripts do PJe', async () => {
 });
 
 test('importação com o PJe ligado: sem o botão do PJe', async () => {
+  await garantirLigado();
+  const popup = await abrirPopup();
+  assert.equal(await marcado(popup), true);
   const page = await importar('quase.pfx', 'senha123');
   assert.equal(await page.$eval('#pje-ligar', (b) => b.hidden), true);
 });
@@ -169,12 +228,27 @@ test('popup: marcas de certificado para o PJe e tarefas recusadas', async () => 
   await naExtensao(() => chrome.storage.session.remove('pjeRecusadas'));
 });
 
+// No Firefox não há como encerrar o fundo pelo BiDi: o acerto da
+// inicialização é coberto por test/unit/pje-registro.test.js (acertar).
+const SEM_REINICIO = SO_CHROME && 'no Firefox não há como encerrar o fundo pelo BiDi; acertar é coberto por test/unit/pje-registro.test.js';
+
+test('registro apagado à mão: o fundo, ao reiniciar, registra de novo', { skip: SEM_REINICIO }, async () => {
+  await garantirLigado();
+  await naExtensao(() => chrome.scripting.unregisterContentScripts({ ids: ['jamegao-pje-pagina', 'jamegao-pje-conteudo'] }));
+  assert.deepEqual(await registrados(), []);
+  await reiniciarFundo();
+  await esperarRegistro(LIGADOS);
+  await tjmaAtendido();
+});
+
 test('desligar pelo popup: os scripts saem e a imagem segue para :8800', async () => {
+  await garantirLigado();
   const popup = await abrirPopup();
   assert.equal(await marcado(popup), true);
   await popup.click('#pje-ligar');
   await popup.waitForSelector('#pje-ligar:not(:checked)');
   assert.deepEqual(await registrados(), []);
+  assert.equal(await escolha(), false);
   // A cópia de teste tem a permissão como obrigatória: o Chrome recusa
   // devolvê-la (e o Jamegão ignora a recusa); o Firefox a devolve.
   assert.equal(await concedida(), browserName === 'chrome');
@@ -184,57 +258,18 @@ test('desligar pelo popup: os scripts saem e a imagem segue para :8800', async (
   assert.equal(await marcado(await abrirPopup()), false);
 });
 
-test('ligar pelo popup: o TJMA volta a ser atendido', { skip: SO_CHROME }, async () => {
-  const popup = await abrirPopup();
-  assert.equal(await marcado(popup), false);
-  await popup.click('#pje-ligar');
-  await popup.waitForSelector('#pje-ligar:checked');
-  assert.equal(await popup.$eval('#pje-aviso', (e) => (e.hidden ? '' : e.textContent.trim())), RECARREGUE);
-  assert.deepEqual(await registrados(), LIGADOS);
-  await tjmaAtendido();
-});
-
-// O que o Firefox faz com o clique do BiDi: recusa o pedido de permissão, e o
-// popup avisa e segue desligado (com usuário de verdade, o clique é gesto).
-test('Firefox: clique sem gesto de verdade, o pedido é recusado e o PJe segue desligado', { skip: browserName !== 'firefox' && 'só no Firefox' }, async () => {
-  const popup = await abrirPopup();
-  assert.equal(await marcado(popup), false);
-  const render = await popup.$eval('body', (b) => Number(b.dataset.render));
-  await popup.click('#pje-ligar');
-  await popup.waitForSelector(`body:not([data-render="${render}"])`);
-  assert.equal(await marcado(popup), false);
-  assert.equal(await popup.$eval('#status', (e) => `${e.className}|${e.textContent}`), 'erro|Não foi possível concluir a ação.');
-  assert.equal(await popup.$eval('#pje-aviso', (e) => e.hidden), true);
+test('desligado com a permissão que o navegador não devolveu: o fundo, ao reiniciar, não religa', { skip: SEM_REINICIO }, async () => {
+  assert.equal(await concedida(), true);
+  assert.equal(await escolha(), false);
+  await reiniciarFundo();
+  await new Promise((r) => setTimeout(r, 1000)); // tempo para o acerto do fundo novo
   assert.deepEqual(await registrados(), []);
-});
-
-// No Firefox não há como encerrar o fundo pelo BiDi: o acerto da
-// inicialização é coberto por test/unit/pje-registro.test.js (acertar).
-test('registro apagado à mão: o fundo, ao reiniciar, registra de novo', { skip: SO_CHROME && 'no Firefox não há como encerrar o fundo pelo BiDi; acertar é coberto por test/unit/pje-registro.test.js' }, async () => {
-  assert.deepEqual(await registrados(), LIGADOS);
-  await naExtensao(() => chrome.scripting.unregisterContentScripts({ ids: ['jamegao-pje-pagina', 'jamegao-pje-conteudo'] }));
-  assert.deepEqual(await registrados(), []);
-
-  // Como em assinar.test.mjs: ServiceWorker.stopAllWorkers numa sessão CDP de página.
-  const page = await nova('about:blank');
-  const cdp = await page.createCDPSession();
-  await cdp.send('ServiceWorker.enable');
-  await cdp.send('ServiceWorker.stopAllWorkers');
-  const vivo = () => h.browser.targets().some((t) => t.type() === 'service_worker' && t.url().includes('background.js'));
-  for (let i = 0; i < 50 && vivo(); i++) await new Promise((res) => setTimeout(res, 100));
-  assert.equal(vivo(), false, 'o service worker deveria ter parado');
-  // Uma mensagem qualquer acorda um fundo novo, que acerta o registro ao iniciar.
-  await naExtensao(() => chrome.runtime.sendMessage({ type: 'acordar' }).catch(() => null));
-  await esperarRegistro(LIGADOS);
-  await tjmaAtendido();
+  await tjmaNaoAtendido();
 });
 
 test('importação com o PJe desligado: botão "Usar também no PJe"', async () => {
   const popup = await abrirPopup();
-  if (await marcado(popup)) {
-    await popup.click('#pje-ligar');
-    await popup.waitForSelector('#pje-ligar:not(:checked)');
-  }
+  assert.equal(await marcado(popup), false);
   await popup.close();
   const page = await importar('quase.pfx', 'senha123');
   assert.equal(await page.$eval('#pje-ligar', (b) => (b.hidden ? '' : b.textContent.trim())), 'Usar também no PJe');
@@ -250,5 +285,6 @@ test('importação com o PJe desligado: botão "Usar também no PJe"', async () 
   await page.waitForSelector('#pje-ligar[hidden]');
   assert.equal(await page.$eval('#pje-aviso', (e) => (e.hidden ? '' : e.textContent.trim())), RECARREGUE);
   assert.deepEqual(await registrados(), LIGADOS);
+  assert.equal(await escolha(), true);
   await tjmaAtendido();
 });

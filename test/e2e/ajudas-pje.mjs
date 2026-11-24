@@ -3,15 +3,19 @@
 // O navegador precisa ter sido aberto com launch(..., { pje: true }).
 import assert from 'node:assert/strict';
 
-// Liga o PJe como o fundo faz: registro.registrar, a partir de uma página da
-// extensão (a permissão de *.jus.br já vem concedida na cópia de teste).
+// Liga o PJe como o clique em "Usar também no PJe", menos o pedido de
+// permissão (já concedida na cópia de teste): registro.registrar e a escolha
+// guardada, a partir de uma página da extensão. Sem a escolha, o fundo
+// retiraria o registro na próxima vez que acordasse.
 export async function ligarPje(h) {
   const page = await h.browser.newPage();
   try {
     await page.goto(h.extUrl('pages/import.html'));
     await page.evaluate(async () => {
       const { registrar } = await import('/protocolos/pje/registro.js');
+      const { idbKv } = await import('/lib/kv.js');
       await registrar(globalThis.browser ?? globalThis.chrome);
+      await idbKv().set('pjeLigado', true);
     });
   } finally {
     await page.close();

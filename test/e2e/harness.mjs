@@ -21,10 +21,10 @@ const tmpDirs = [];
 // do content script (o manifesto de produção só cobre sites .jus.br). Com
 // `pje`, a cópia põe `https://*.jus.br/*` também em host_permissions: a
 // permissão, que no manifesto é opcional, vem concedida ao carregar, sem a
-// pergunta do navegador. O fundo então liga o PJe ao iniciar
-// (protocolos/pje/registro.js, acertar). permissions.request responde true sem
-// perguntar no Chrome; no Firefox recusa por falta de gesto do usuário (o
-// clique pelo BiDi não conta), e permissions.remove a devolve de verdade.
+// pergunta do navegador (o PJe segue desligado até a escolha do usuário,
+// protocolos/pje/registro.js). permissions.request responde true sem perguntar
+// no Chrome; no Firefox recusa por falta de gesto do usuário (o clique pelo
+// BiDi não conta), e permissions.remove a devolve de verdade.
 export async function makeTestExtension({ pje = false } = {}) {
   const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'jamegao-ext-'));
   tmpDirs.push(dir);
