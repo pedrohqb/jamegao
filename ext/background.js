@@ -11,6 +11,7 @@ import { createCredits } from './lib/credits.js';
 import { createAssinar } from './lib/assinar.js';
 import { createDespacho } from './lib/despacho.js';
 import { createEsaj } from './protocolos/esaj/fundo.js';
+import { createPje } from './protocolos/pje/fundo.js';
 import { createPrompts } from './lib/prompts.js';
 
 const api = globalThis.browser ?? globalThis.chrome;
@@ -53,13 +54,16 @@ const modules = () => {
       try { await api.tabs.update(originTabId, { active: true }); } catch { /* aba do site fechada */ }
     },
   });
-  return { vault, certs, sites, credits, prompts };
+  return { session: kv.session, vault, certs, sites, credits, prompts };
 };
 
 async function atenderPedido(msg, sender) {
   const m = modules();
   const despacho = createDespacho({
-    protocolos: [createEsaj({ matches: api.runtime.getManifest().content_scripts[0].matches })],
+    protocolos: [
+      createEsaj({ matches: api.runtime.getManifest().content_scripts[0].matches }),
+      createPje({ session: m.session }),
+    ],
     certs: m.certs,
     sites: m.sites,
     assinar: createAssinar(m),
@@ -106,7 +110,13 @@ async function promptMessage(msg, sender) {
   }
   if (!fromConfirmPage(sender)) return null; // describe/answer: só a janela de confirmação
   if (msg.type === 'prompt-describe') return prompts.describe(String(msg.id));
-  return prompts.answer(String(msg.id), { allow: msg.allow === true, password: msg.password, block: msg.block === true });
+  return prompts.answer(String(msg.id), {
+    allow: msg.allow === true,
+    password: msg.password,
+    block: msg.block === true,
+    thumbprint: typeof msg.thumbprint === 'string' ? msg.thumbprint : undefined,
+    programa: msg.programa === true,
+  });
 }
 
 // Anúncio e registro da extensão oficial vista na página (só para o aviso do

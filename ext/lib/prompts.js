@@ -38,9 +38,10 @@ export function createPrompts({ session, vault, certs, sites, credits, notify, c
   }
 
   // pause: o usuário recusou, fechou a janela ou deixou o prazo vencer.
-  // A aba que saiu ou foi fechada não pausa o site.
+  // A aba que saiu ou foi fechada não pausa o site. O aviso (needs.aviso) não
+  // pede decisão nenhuma: fechá-lo nunca pausa.
   async function refuse(rec, { pause = false } = {}) {
-    if (pause) {
+    if (pause && !rec.needs?.aviso) {
       try {
         const pausas = await session.get('promptRefusals', {});
         pausas[rec.origin] = now();
@@ -66,15 +67,21 @@ export function createPrompts({ session, vault, certs, sites, credits, notify, c
       const recusado = (await session.get('promptRefusals', {}))[origin];
       if (typeof recusado === 'number' && now() - recusado < REFUSAL_PAUSE_MS) return { paused: true };
       // Titular e validade vêm do certificado guardado, nunca da página.
+      const descrever = async (thumbprint) => {
+        const entry = await certs.get(thumbprint);
+        return { thumbprint, subject: entry?.model?.subjectName ?? null, validityEnd: entry?.model?.validityEnd ?? null };
+      };
       let subject = null;
       let validityEnd = null;
-      if (needs.sign) {
-        const entry = await certs.get(needs.sign.thumbprint);
-        subject = entry?.model?.subjectName ?? null;
-        validityEnd = entry?.model?.validityEnd ?? null;
+      const principal = needs.sign?.thumbprint ?? needs.escolher?.marcado;
+      if (principal !== undefined) ({ subject, validityEnd } = await descrever(principal));
+      const rec = { id: globalThis.crypto.randomUUID(), needs, origin, tabId, frameId, command, subject, validityEnd, createdAt: now() };
+      if (needs.escolher) {
+        rec.opcoes = [];
+        for (const t of needs.escolher.opcoes) rec.opcoes.push(await descrever(t));
       }
-      const id = globalThis.crypto.randomUUID();
-      all[id] = { id, needs, origin, tabId, frameId, command, subject, validityEnd, createdAt: now() };
+      const { id } = rec;
+      all[id] = rec;
       await writeAll(all);
       return { id };
     }),
@@ -103,16 +110,30 @@ export function createPrompts({ session, vault, certs, sites, credits, notify, c
         await refuse(rec, { pause: true });
         return null;
       }
-      return { origin: rec.origin, needs: rec.needs, subject: rec.subject, validityEnd: rec.validityEnd };
+      const d = { origin: rec.origin, needs: rec.needs, subject: rec.subject, validityEnd: rec.validityEnd };
+      if (rec.opcoes) d.opcoes = rec.opcoes;
+      return d;
     }),
 
     // block: o usuário pediu "Bloquear este site" (recusa e bloqueia).
-    answer: (id, { allow, password, block } = {}) => exclusive(async () => {
+    // programa: "Usar o programa instalado" (só quando needs.programa): a
+    // página deixa a chamada seguir, sem pausa, crédito nem decisão do site.
+    // thumbprint: o certificado escolhido, quando há needs.escolher.
+    answer: (id, { allow, password, block, thumbprint, programa } = {}) => exclusive(async () => {
       const rec = (await readAll())[id];
       if (!rec) return { done: true };
       if (expired(rec)) {
         await refuse(rec, { pause: true });
         return { done: true, expired: true };
+      }
+      // O aviso só se fecha: qualquer resposta é recusa (sem pausa).
+      if (rec.needs.aviso) {
+        await refuse(rec);
+        return { done: true };
+      }
+      if (programa === true && rec.needs.programa === true) {
+        await finish(rec, 'programa');
+        return { done: true };
       }
       if (block === true) {
         let gravou = true;
@@ -125,23 +146,33 @@ export function createPrompts({ session, vault, certs, sites, credits, notify, c
         await refuse(rec, { pause: true });
         return gravou ? { done: true } : { done: true, error: 'bloqueio' };
       }
-      if (allow !== true) {
+      if (allow !== true || programa === true) {
         await refuse(rec, { pause: true });
         return { done: true };
+      }
+      const interno = async () => {
+        await finish(rec, fail(CODES.internal, 'Não foi possível registrar a autorização. Tente de novo.'));
+        return { done: true, error: 'interno' };
+      };
+      let escolhido = rec.needs.sign?.thumbprint;
+      if (rec.needs.escolher) {
+        // Só vale um certificado oferecido na janela.
+        if (typeof thumbprint !== 'string' || !rec.needs.escolher.opcoes.includes(thumbprint)) return interno();
+        escolhido = thumbprint;
       }
       try {
         if (rec.needs.unlock && !(await vault.isUnlocked())) {
           const r = await vault.unlock(typeof password === 'string' ? password : '');
           if (!r.ok) return { error: 'senha', waitMs: r.waitMs };
         }
-        if (rec.needs.sign) await credits.grant(rec.origin, rec.needs.sign.thumbprint, rec.needs.sign.count);
+        if (rec.needs.sign) await credits.grant(rec.origin, escolhido, rec.needs.sign.count);
+        if (rec.needs.escolher) await sites.setCertificado(rec.origin, escolhido);
         if (rec.needs.site) await sites.setAllowed(rec.origin, true);
       } catch {
         // Falhou no meio: nenhum crédito sobra, e a aba recebe a falha agora,
         // em vez de esperar 120 s.
         if (rec.needs.sign) await credits.clear().catch(() => {});
-        await finish(rec, fail(CODES.internal, 'Não foi possível registrar a autorização. Tente de novo.'));
-        return { done: true, error: 'interno' };
+        return interno();
       }
       await finish(rec, rec.command === 'preauthorizeSignatures' ? ok(null) : 'retry');
       return { done: true };

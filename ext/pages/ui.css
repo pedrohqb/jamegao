@@ -4,7 +4,7 @@ h1 { font-size: 1.4rem; }
 #area { border: 2px dashed #888; border-radius: 8px; padding: 1rem; margin-bottom: 1rem; }
 #area.sobre { border-color: #2a5db0; background: #f3f7fd; }
 label { display: block; margin: .6rem 0 .2rem; }
-input[type=password] { width: 100%; box-sizing: border-box; padding: .4rem; }
+input[type=password], select { width: 100%; box-sizing: border-box; padding: .4rem; }
 button { margin-top: 1rem; padding: .5rem 1.2rem; font-size: 1rem; }
 #status { margin-top: 1rem; padding: .5rem .8rem; border-radius: 4px; }
 #status:empty { display: none; }

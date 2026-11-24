@@ -1,4 +1,5 @@
-// Sites: decisão do usuário por origem (local.sites) e origens em que a
+// Sites: decisão do usuário por origem (local.sites), o certificado escolhido
+// por último em cada origem (PJe, no mesmo registro) e origens em que a
 // extensão oficial já apareceu nesta sessão (session.officialSeen, só para o
 // aviso do ícone).
 
@@ -23,6 +24,11 @@ export function createSites({ local, session }) {
   return {
     get,
     setAllowed: (origin, allowed) => patch(origin, { allowed: allowed === true }),
+    async certificado(origin) {
+      const t = (await readAll())[origin]?.certificado;
+      return typeof t === 'string' ? t : undefined;
+    },
+    setCertificado: (origin, thumbprint) => patch(origin, { certificado: thumbprint }),
     remove: (origin) =>
       exclusive(async () => {
         const all = await readAll();

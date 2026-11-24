@@ -335,3 +335,105 @@ test('modo aba: fechar a aba de confirmação recusa e pausa; a do site segue as
   assert.deepEqual(closedTabs, [[98, 7]], 'a confirmação órfã fecha junto');
   assert.ok((await prompts.open(full(), ctx({ tabId: 8 }))).id, 'aba que sai não pausa o site');
 });
+
+// PJe: programa instalado, escolha de certificado e aviso de cadeia.
+const T2 = 'f'.repeat(40);
+const pjeSign = (over = {}) => ({ motivo: 'login', sistema: 'PJe', count: 1, thumbprint: T, ...over });
+const segundo = async () => {
+  await createCerts().put({
+    thumbprint: T2, model: { ...model, subjectName: 'OUTRO TITULAR', validityEnd: '2030-01-01T00:00:00.000Z' },
+    certB64, key: { iv: 'x', data: 'x' }, importedAt: 'x',
+  });
+};
+
+test('"Usar o programa instalado": desfecho programa, sem pausa, sem crédito e sem mexer no site', async () => {
+  await setup();
+  const { id } = await prompts.open({ site: true, unlock: true, programa: true, sign: pjeSign() }, ctx({ command: 'assinar' }));
+  await prompts.setWindow(id, 4);
+  assert.deepEqual(await prompts.answer(id, { programa: true, allow: true, password: PW }), { done: true });
+  assert.deepEqual(sent, [{ tabId: 7, frameId: 0, msg: { type: 'prompt-resolved', id, outcome: 'programa' } }]);
+  assert.deepEqual(closed, [4]);
+  assert.equal(await credits.has(O, T), false);
+  assert.equal(await vault.isUnlocked(), false);
+  assert.deepEqual(await sites.list(), []);
+  assert.ok((await prompts.open({ programa: true, sign: pjeSign() }, ctx())).id, 'sem pausa');
+});
+
+test('programa sem needs.programa (e-SAJ) é recusa', async () => {
+  await setup({ unlocked: true });
+  const { id } = await prompts.open({ sign: { count: 1, thumbprint: T } }, ctx());
+  await prompts.answer(id, { programa: true, allow: true });
+  assert.equal(sent[0].msg.outcome.exception.code, 'user_cancelled');
+  assert.equal(await credits.has(O, T), false);
+  assert.deepEqual(await prompts.open(full(), ctx()), { paused: true });
+});
+
+test('escolha de certificado: describe traz as opções; o escolhido vira padrão e recebe o crédito', async () => {
+  await setup();
+  await segundo();
+  const needs = { site: true, unlock: true, programa: true, sign: pjeSign({ count: 2 }), escolher: { opcoes: [T, T2], marcado: T } };
+  const { id } = await prompts.open(needs, ctx({ command: 'assinar' }));
+  const d = await prompts.describe(id);
+  assert.equal(d.subject, model.subjectName);
+  assert.deepEqual(d.opcoes, [
+    { thumbprint: T, subject: model.subjectName, validityEnd: model.validityEnd },
+    { thumbprint: T2, subject: 'OUTRO TITULAR', validityEnd: '2030-01-01T00:00:00.000Z' },
+  ]);
+  assert.deepEqual(await prompts.answer(id, { allow: true, password: PW, thumbprint: T2 }), { done: true });
+  assert.equal(await sites.certificado(O), T2);
+  assert.equal((await sites.get(O)).allowed, true);
+  assert.equal(await credits.has(O, T), false);
+  assert.equal(await credits.consume(O, T2), true);
+  assert.equal(await credits.consume(O, T2), true);
+  assert.equal(await credits.consume(O, T2), false);
+  assert.equal(sent[0].msg.outcome, 'retry');
+});
+
+test('escolha sem sign: titular e validade vêm do marcado', async () => {
+  await setup();
+  await segundo();
+  const { id } = await prompts.open({ escolher: { opcoes: [T, T2], marcado: T2 } }, ctx());
+  const d = await prompts.describe(id);
+  assert.equal(d.subject, 'OUTRO TITULAR');
+  assert.equal(d.validityEnd, '2030-01-01T00:00:00.000Z');
+});
+
+test('escolha com certificado fora das opções: erro interno e nada concedido', async () => {
+  for (const thumbprint of ['0'.repeat(40), undefined, 42]) {
+    await setup();
+    await segundo();
+    const { id } = await prompts.open({ unlock: true, site: true, programa: true, sign: pjeSign(), escolher: { opcoes: [T, T2], marcado: T } }, ctx());
+    assert.deepEqual(await prompts.answer(id, { allow: true, password: PW, thumbprint }), { done: true, error: 'interno' });
+    assert.equal(sent[0].msg.outcome.exception.code, CODES.internal);
+    assert.equal(await vault.isUnlocked(), false);
+    assert.equal(await credits.has(O, T), false);
+    assert.equal(await sites.certificado(O), undefined);
+    assert.equal((await sites.get(O)).allowed, undefined);
+    assert.equal(await prompts.describe(id), null);
+  }
+});
+
+test('describe sem escolha não traz opções', async () => {
+  await setup();
+  const { id } = await prompts.open({ programa: true, sign: pjeSign() }, ctx());
+  assert.equal('opcoes' in (await prompts.describe(id)), false);
+});
+
+test('aviso de cadeia: só recusa, sem pausa, nada concedido', async () => {
+  await setup({ unlocked: true });
+  const needs = () => ({ aviso: 'semCadeia', sign: pjeSign() });
+  const a = await prompts.open(needs(), ctx());
+  assert.deepEqual(await prompts.answer(a.id, { allow: true }), { done: true });
+  assert.equal(sent[0].msg.outcome.exception.code, 'user_cancelled');
+  assert.equal(await credits.has(O, T), false);
+  assert.deepEqual(await sites.list(), []);
+  const b = await prompts.open(needs(), ctx());
+  assert.ok(b.id, 'sem pausa depois de Fechar');
+  await prompts.setWindow(b.id, 9);
+  await prompts.closedWindow(9);
+  const c = await prompts.open(needs(), ctx());
+  assert.ok(c.id, 'sem pausa depois de fechar a janela');
+  await prompts.answer(c.id, { block: true });
+  assert.equal((await sites.get(O)).allowed, undefined, 'aviso não bloqueia');
+  assert.ok((await prompts.open(needs(), ctx())).id);
+});

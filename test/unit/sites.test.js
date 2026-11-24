@@ -66,3 +66,20 @@ test('gravações concorrentes não se perdem', async () => {
   await Promise.all([s.remove(O), s.setAllowed(O2, false)]);
   assert.deepEqual((await s.list()).map((x) => x.origin), [O2]);
 });
+
+test('certificado escolhido por origem fica no mesmo registro e não muda a decisão', async () => {
+  const { s } = setup();
+  assert.equal(await s.certificado(O), undefined);
+  await s.setAllowed(O, true);
+  await s.setCertificado(O, 'abc');
+  assert.equal(await s.certificado(O), 'abc');
+  assert.equal(await s.certificado('https://outro.jus.br'), undefined);
+  await s.setAllowed(O, false);
+  assert.equal(await s.certificado(O), 'abc');
+  assert.deepEqual(await s.get(O), { allowed: false });
+  assert.deepEqual(await s.list(), [{ origin: O, allowed: false }]);
+  await s.setCertificado(O, 'def');
+  assert.equal(await s.certificado(O), 'def');
+  await s.remove(O);
+  assert.equal(await s.certificado(O), undefined);
+});

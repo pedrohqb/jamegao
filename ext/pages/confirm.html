@@ -11,7 +11,12 @@
   <p id="origem"></p>
   <p id="site" hidden></p>
   <p id="assinatura" hidden></p>
+  <div id="bloco-certificado" hidden>
+    <label for="certificado">Certificado</label>
+    <select id="certificado"></select>
+  </div>
   <p id="vencimento" class="aviso" hidden></p>
+  <p id="cadeia" hidden></p>
   <div id="bloco-senha" hidden>
     <label for="senha">Senha do cofre</label>
     <input type="password" id="senha" autocomplete="off">
@@ -20,6 +25,8 @@
   <button id="confirmar" type="button">Confirmar</button>
   <button id="recusar" type="button">Recusar</button>
   <button id="bloquear" type="button">Bloquear este site</button>
+  <button id="programa" type="button" hidden>Usar o programa instalado</button>
+  <button id="fechar" type="button" hidden>Fechar</button>
   <script type="module" src="confirm.js"></script>
 </body>
 </html>
