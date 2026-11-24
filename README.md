@@ -24,11 +24,12 @@ O Jamegão é um projeto independente, sem vínculo com os fornecedores do e-SAJ
 
 ### Onde funciona
 
-**Sistemas:** Linux, Windows, macOS (Intel e Apple), ChromeOS e até OpenBSD, onde o login no e-SAJ já foi testado. O que importa é o navegador.
+**Sistemas:** Linux, Windows, macOS (Intel e Apple), ChromeOS, Android (pelo Firefox) e até OpenBSD, onde o login no e-SAJ já foi testado. O que importa é o navegador.
 
 | Navegador | Versão mínima | Como instalar |
 |---|---|---|
 | Firefox | 140 | [Firefox Add-ons](https://addons.mozilla.org/firefox/addon/jamegao/) ([abaixo](#firefox)) |
+| Firefox para Android | 142 | [Firefox Add-ons](https://addons.mozilla.org/android/addon/jamegao/), pelo menu **⋮ → Extensões** do Firefox |
 | Google Chrome, Microsoft Edge, Brave, Chromium | 121 | [Chrome Web Store](https://chromewebstore.google.com/detail/pkmhmpmgojhgogcklacckpideochcggj) ([abaixo](#chrome-edge-brave-e-chromium)) |
 
 **Tribunais:** o Jamegão só atua nos portais e-SAJ abaixo. Nos sistemas que já aceitam o certificado direto no navegador (eproc, Projudi, PJe pelo navegador), ele não é necessário.
@@ -54,6 +55,12 @@ Se você usar um desses que ainda não foram testados, conte como foi numa [issu
 2. Em `about:addons` → Jamegão → **Permissões**, confira se o acesso aos sites do e-SAJ está ligado. O Firefox às vezes deixa desligado.
 
 Quem instalou uma versão anterior pelo arquivo `.xpi` da [página de versões](https://github.com/pedrohqb/jamegao/releases) não precisa fazer nada: o Firefox passa para a versão da loja sozinho, e o cofre e os certificados continuam. O arquivo `.xpi` continua disponível lá, para quem preferir instalar à mão (arrastando-o para o Firefox).
+
+#### Android
+
+No celular ou tablet, só o **Firefox** aceita extensões (o Chrome do Android, não). Instale pelo Firefox: menu **⋮ → Extensões**, procure **Jamegão** (ou abra a [página dele](https://addons.mozilla.org/android/addon/jamegao/)) e toque em **Adicionar**. Para importar, deixe o arquivo PFX na pasta **Download** do aparelho.
+
+No Android, a confirmação abre numa aba em vez de janela: ela fecha sozinha depois da resposta e devolve você ao e-SAJ, e fechá-la vale como recusar. Se o portal do e-SAJ não mostrar a entrada por certificado, use **⋮ → Site para computador**.
 
 #### Chrome, Edge, Brave e Chromium
 
@@ -184,7 +191,7 @@ Jamegão is a Firefox and Chromium (Chrome, Edge, Brave) extension that lets Bra
 
 It is an independent project, not affiliated with the vendors of e-SAJ or of the official extensions, nor with the courts. A3 tokens and smart cards are not supported; for those, see the sister project [Tessera](https://github.com/pedrohqb/tessera).
 
-**Works on** Linux, Windows, macOS, ChromeOS and even OpenBSD (e-SAJ login tested), with Firefox 140+ or Chromium-based browsers 121+, on the e-SAJ portals of TJSP, TJAL, TJMS, TJAC, TJCE and TJBA (tested so far on TJSP and TJAL).
+**Works on** Linux, Windows, macOS, ChromeOS, Android (Firefox 142+) and even OpenBSD (e-SAJ login tested), with Firefox 140+ or Chromium-based browsers 121+, on the e-SAJ portals of TJSP, TJAL, TJMS, TJAC, TJCE and TJBA (tested so far on TJSP and TJAL).
 
 **Install.** Firefox: install from [Firefox Add-ons](https://addons.mozilla.org/firefox/addon/jamegao/); then check in `about:addons` → Jamegão → Permissions that site access is on. Chromium browsers (Chrome, Edge, Brave): install from the [Chrome Web Store](https://chromewebstore.google.com/detail/pkmhmpmgojhgogcklacckpideochcggj). Jamegão is for people who do not use the official signing extensions: if one is active on the page, Jamegão turns itself off there, so disable them in that browser profile.
 
