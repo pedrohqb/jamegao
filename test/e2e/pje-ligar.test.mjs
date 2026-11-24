@@ -20,7 +20,7 @@ import { abrirPje, ligarPje } from './ajudas-pje.mjs';
 import { gerar } from '../fix/gerar.mjs';
 
 const browserName = process.env.BROWSER || 'chrome';
-const SO_CHROME = browserName === 'firefox'
+const SEM_GESTO_FIREFOX = browserName === 'firefox'
   && 'no Firefox, permissions.request só aceita gesto do usuário de verdade, que o BiDi não produz em página de extensão';
 const COFRE = 'cofre-forte-1';
 const TJMA = 'https://pje.tjma.jus.br';
@@ -161,7 +161,7 @@ test('Firefox: clique sem gesto de verdade, o pedido é recusado e o PJe segue d
   assert.equal(await escolha(), undefined);
 });
 
-test('ligar pelo popup: o TJMA passa a ser atendido', { skip: SO_CHROME }, async () => {
+test('ligar pelo popup: o TJMA passa a ser atendido', { skip: SEM_GESTO_FIREFOX }, async () => {
   const popup = await abrirPopup();
   assert.equal(await marcado(popup), false);
   await popup.click('#pje-ligar');
@@ -230,7 +230,7 @@ test('popup: marcas de certificado para o PJe e tarefas recusadas', async () => 
 
 // No Firefox não há como encerrar o fundo pelo BiDi: o acerto da
 // inicialização é coberto por test/unit/pje-registro.test.js (acertar).
-const SEM_REINICIO = SO_CHROME && 'no Firefox não há como encerrar o fundo pelo BiDi; acertar é coberto por test/unit/pje-registro.test.js';
+const SEM_REINICIO = browserName === 'firefox' && 'no Firefox não há como encerrar o fundo pelo BiDi; acertar é coberto por test/unit/pje-registro.test.js';
 
 test('registro apagado à mão: o fundo, ao reiniciar, registra de novo', { skip: SEM_REINICIO }, async () => {
   await garantirLigado();
@@ -273,7 +273,7 @@ test('importação com o PJe desligado: botão "Usar também no PJe"', async () 
   await popup.close();
   const page = await importar('quase.pfx', 'senha123');
   assert.equal(await page.$eval('#pje-ligar', (b) => (b.hidden ? '' : b.textContent.trim())), 'Usar também no PJe');
-  if (SO_CHROME) {
+  if (SEM_GESTO_FIREFOX) {
     // No Firefox o clique do BiDi não é gesto: o pedido é recusado.
     await page.click('#pje-ligar');
     await page.waitForSelector('#status.erro');

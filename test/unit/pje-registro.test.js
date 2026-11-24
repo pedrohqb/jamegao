@@ -3,7 +3,9 @@
 // teste de ponta a ponta (não há como encerrar o fundo de lá pelo BiDi).
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { PERMISSAO, ligado, registrar, ligarNoGesto, retirar, acertar } from '../../ext/protocolos/pje/registro.js';
+import {
+  PERMISSAO, ligado, registrar, ligarNoGesto, retirar, acertar, permissaoConcedida, permissaoRetirada,
+} from '../../ext/protocolos/pje/registro.js';
 import { memoryKv } from './helpers.js';
 
 const ESAJ = ['https://esaj.tjsp.jus.br/*', 'https://www2.tjal.jus.br/*'];
@@ -86,9 +88,18 @@ test('registrar: os dois scripts, fora dos endereços do e-SAJ', async () => {
   assert.deepEqual(IDS.map((id) => e.scripts.get(id)), ESPERADOS);
 });
 
-test('registrar de novo troca o registro, sem id repetido', async () => {
+test('registrar de novo não mexe no que já está registrado', async () => {
   const e = apiFalsa({ concedida: true });
   await registrar(e.api);
+  e.chamadas.length = 0;
+  await registrar(e.api);
+  assert.deepEqual(e.chamadas, []);
+  assert.deepEqual(IDS.map((id) => e.scripts.get(id)), ESPERADOS);
+});
+
+test('registrar com só um dos scripts troca pelos dois', async () => {
+  const e = apiFalsa({ concedida: true });
+  e.scripts.set('jamegao-pje-pagina', { id: 'jamegao-pje-pagina' });
   await registrar(e.api);
   assert.deepEqual(IDS.map((id) => e.scripts.get(id)), ESPERADOS);
 });
@@ -102,7 +113,7 @@ test('registrar: outro contexto registra no meio do caminho ("Duplicate script I
 
 test('registrar: outro contexto tira o registro no meio do caminho', async () => {
   const e = apiFalsa({ concedida: true });
-  registrarTudo(e);
+  e.scripts.set('jamegao-pje-pagina', { id: 'jamegao-pje-pagina' });
   e.antes.unregister = () => { e.antes.unregister = undefined; e.scripts.clear(); };
   await registrar(e.api);
   assert.deepEqual(IDS.map((id) => e.scripts.get(id)), ESPERADOS);
@@ -273,4 +284,59 @@ test('ligarNoGesto: recusa do navegador (sem gesto) chega a quem chamou', async 
   const lanca = comPedido(apiFalsa(), () => { throw sem; });
   await assert.rejects(ligarNoGesto(lanca.api, lanca.kv), sem);
   assert.equal(e.scripts.size + lanca.scripts.size, 0);
+});
+
+// Eventos de permissão, no fundo (permissions.onAdded / onRemoved).
+const JUS = { origins: ['https://*.jus.br/*'], permissions: [] };
+
+test('permissão de *.jus.br concedida: registra e guarda a escolha', async () => {
+  const e = apiFalsa({ concedida: true });
+  await permissaoConcedida(e.api, JUS, e.kv);
+  assert.deepEqual(IDS.map((id) => e.scripts.get(id)), ESPERADOS);
+  assert.equal(await escolha(e), true);
+  assert.equal(await ligadoDe(e), true);
+});
+
+test('permissão concedida pelo clique e pelo evento ao mesmo tempo: um registro só, sem erro', async () => {
+  const e = comPedido(apiFalsa(), async () => { e.concedida = true; return true; });
+  await Promise.all([ligarNoGesto(e.api, e.kv), permissaoConcedida(e.api, JUS, e.kv)]);
+  assert.deepEqual(IDS.map((id) => e.scripts.get(id)), ESPERADOS);
+  assert.equal(await escolha(e), true);
+  assert.equal(e.chamadas.filter((c) => c === 'unregister').length, 0);
+});
+
+test('outra permissão concedida: nada muda', async () => {
+  for (const p of [{ origins: ['https://exemplo.com.br/*'], permissions: [] }, { permissions: ['tabs'] }, {}, undefined]) {
+    const e = apiFalsa({ concedida: true });
+    await permissaoConcedida(e.api, p, e.kv);
+    assert.equal(e.scripts.size, 0);
+    assert.deepEqual(e.chamadas, []);
+    assert.equal(await escolha(e), undefined);
+  }
+});
+
+test('permissão de *.jus.br retirada: desfaz a escolha e retira o registro', async () => {
+  const e = apiFalsa({ escolha: true });
+  registrarTudo(e);
+  await permissaoRetirada(e.api, JUS, e.kv);
+  assert.equal(e.scripts.size, 0);
+  assert.equal(await escolha(e), false);
+  assert.ok(!e.chamadas.includes('remove'));
+});
+
+test('permissão retirada depois de desligar pelo popup: nada falha', async () => {
+  const e = apiFalsa({ concedida: true, escolha: true });
+  registrarTudo(e);
+  await retirar(e.api, e.kv);
+  await permissaoRetirada(e.api, JUS, e.kv);
+  assert.equal(e.scripts.size, 0);
+  assert.equal(await escolha(e), false);
+});
+
+test('outra permissão retirada: nada muda', async () => {
+  const e = apiFalsa({ concedida: true, escolha: true });
+  registrarTudo(e);
+  await permissaoRetirada(e.api, { origins: ['https://exemplo.com.br/*'], permissions: [] }, e.kv);
+  assert.equal(e.scripts.size, 2);
+  assert.equal(await escolha(e), true);
 });

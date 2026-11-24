@@ -56,10 +56,12 @@ export async function ligado(api, kv = idbKv()) {
   return (await registradosDe(api)).length === IDS.length;
 }
 
-// Registra os dois scripts, trocando o que houver com os mesmos ids. Se outro
-// contexto registrou no meio do caminho ("Duplicate script ID"), o registro
-// dele vale.
+// Registra os dois scripts. Já registrados os dois, não faz nada (o popup e o
+// fundo podem ligar ao mesmo tempo, pelo clique e por permissions.onAdded).
+// Se outro contexto registrou no meio do caminho ("Duplicate script ID"), o
+// registro dele vale.
 export async function registrar(api) {
+  if ((await registradosDe(api)).length === IDS.length) return;
   await tirarRegistro(api);
   try {
     await api.scripting.registerContentScripts(scripts(api));
@@ -67,6 +69,12 @@ export async function registrar(api) {
     if ((await registradosDe(api)).length !== IDS.length) throw err;
   }
 }
+
+// Com a permissão em mãos: registra e só então guarda a escolha.
+const ligarComPermissao = async (api, kv) => {
+  await registrar(api);
+  await kv.set(CHAVE, true);
+};
 
 // Para o clique em "Usar também no PJe": pede a permissão na hora, sem nada
 // esperado antes (os navegadores só a pedem dentro do gesto do usuário), e,
@@ -80,10 +88,26 @@ export function ligarNoGesto(api, kv = idbKv()) {
   }
   return pedido.then(async (concedida) => {
     if (!concedida) return false;
-    await registrar(api);
-    await kv.set(CHAVE, true);
+    await ligarComPermissao(api, kv);
     return true;
   });
+}
+
+const trazJusBr = (permissoes) => Array.isArray(permissoes?.origins) && permissoes.origins.includes(PERMISSAO.origins[0]);
+
+// permissions.onAdded, no fundo: conceder *.jus.br (pelo clique ou nas
+// configurações de extensões do navegador) é a escolha de ligar. Cobre o
+// popup que se fecha antes de o usuário responder à pergunta do navegador
+// (no Firefox, a pergunta pode abrir atrás do popup).
+export async function permissaoConcedida(api, permissoes, kv = idbKv()) {
+  if (trazJusBr(permissoes)) await ligarComPermissao(api, kv);
+}
+
+// permissions.onRemoved, no fundo: sem *.jus.br, o PJe desliga.
+export async function permissaoRetirada(api, permissoes, kv = idbKv()) {
+  if (!trazJusBr(permissoes)) return;
+  await kv.set(CHAVE, false);
+  await tirarRegistro(api);
 }
 
 // Desligar: guarda a escolha primeiro, retira os scripts e tenta devolver a

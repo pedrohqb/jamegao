@@ -13,7 +13,7 @@ import { createDespacho } from './lib/despacho.js';
 import { createEsaj } from './protocolos/esaj/fundo.js';
 import { createPje } from './protocolos/pje/fundo.js';
 import { createPrompts } from './lib/prompts.js';
-import { acertar as acertarPje } from './protocolos/pje/registro.js';
+import * as registroPje from './protocolos/pje/registro.js';
 
 const api = globalThis.browser ?? globalThis.chrome;
 
@@ -168,9 +168,19 @@ api.runtime.onInstalled.addListener((details) => {
   if (details.reason === 'install') api.tabs.create({ url: api.runtime.getURL('pages/import.html') });
 });
 
-// PJe: a cada carga do fundo, o registro dos scripts acompanha a permissão
-// de *.jus.br (com ela e sem registro, registra; sem ela, retira).
-acertarPje(api).catch(() => {});
+// PJe: o registro dos scripts acompanha a escolha do usuário e a permissão de
+// *.jus.br (protocolos/pje/registro.js). A cada carga do fundo, acerta; ao
+// conceder ou retirar a permissão, liga ou desliga. Em fila, para que o
+// acerto da carga e o evento que acordou o fundo não se atropelem.
+let filaPje = Promise.resolve();
+const naFilaPje = (fn) => {
+  filaPje = filaPje.then(fn).catch((err) => {
+    console.warn('[Jamegão] Não foi possível acertar o registro do PJe:', String(err?.message ?? err));
+  });
+};
+naFilaPje(() => registroPje.acertar(api));
+api.permissions.onAdded.addListener((p) => naFilaPje(() => registroPje.permissaoConcedida(api, p)));
+api.permissions.onRemoved.addListener((p) => naFilaPje(() => registroPje.permissaoRetirada(api, p)));
 
 // Travamento automático: a cada minuto confere o cofre (vault.isUnlocked trava
 // após 30 min sem uso) e, se travou, descarta os créditos de assinatura.

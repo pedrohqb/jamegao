@@ -112,7 +112,7 @@ async function render() {
       : button('bloquear', 'Bloquear', async () => { await sites.setAllowed(origin, false); await credits.clear(); }));
     $('sites').append(li);
   }
-  $('pje-ligar').checked = await ligado(api);
+  $('pje-ligar').checked = await ligado(api).catch(() => false);
   const recusadas = await kv.session.get('pjeRecusadas', []);
   $('pje-recusadas').replaceChildren(...recusadas.map(({ origin, tarefa }) => {
     const li = document.createElement('li');
