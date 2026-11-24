@@ -148,3 +148,11 @@ test('certificado desconhecido: erra e não consome crédito', async () => {
   );
   assert.equal(await credits.has(O, T), true);
 });
+
+for (const n of [0, -1, 1.5, 501, '3', null, NaN]) {
+  test(`quantidade ${String(n)} é bad_request, sem tocar nos créditos`, async () => {
+    await setup({ creditos: 5 });
+    await assert.rejects(chamar({ quantidade: n }), (e) => e.code === 'bad_request');
+    assert.equal(await credits.has(O, T), true);
+  });
+}

@@ -2,6 +2,7 @@
 // decifra a chave só pelo tempo de `fazer` e a zera no fim. Não abre janela:
 // devolve {needs} (o que o usuário precisa fazer) e quem chama pede.
 import { CODES, PkiError } from './protocol.js';
+import { MAX_SIGNATURES } from './credits.js';
 
 export function createAssinar({ vault, sites, credits, certs }) {
   return async function assinar(
@@ -12,6 +13,9 @@ export function createAssinar({ vault, sites, credits, certs }) {
     // a chave separadamente do crédito que gasta.
     const entry = await certs.get(thumbprint);
     if (!entry) throw new PkiError('Certificado não encontrado', CODES.notFound);
+    if (!Number.isInteger(quantidade) || quantidade < 1 || quantidade > MAX_SIGNATURES) {
+      throw new PkiError('Quantidade de assinaturas inválida', CODES.badRequest);
+    }
     const pedido = { ...sign, count: quantidade, thumbprint };
     const needs = {};
     if ((await sites.get(origin)).allowed !== true) needs.site = true;

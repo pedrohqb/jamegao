@@ -1,4 +1,4 @@
-// Fundo: só liga eventos. A decisão está em lib/commands.js e os pedidos de
+// Fundo: só liga eventos. A decisão está em lib/despacho.js e protocolos/*/fundo.js e os pedidos de
 // confirmação em lib/prompts.js. Nada fica em memória entre eventos: o
 // service worker pode morrer a qualquer momento, então os módulos são
 // recriados a cada mensagem e o estado vive em storage/IndexedDB.
@@ -8,7 +8,9 @@ import { createVault } from './lib/vault.js';
 import { createCerts } from './lib/certs.js';
 import { createSites } from './lib/sites.js';
 import { createCredits } from './lib/credits.js';
-import { createCommands } from './lib/commands.js';
+import { createAssinar } from './lib/assinar.js';
+import { createDespacho } from './lib/despacho.js';
+import { createEsaj } from './protocolos/esaj/fundo.js';
 import { createPrompts } from './lib/prompts.js';
 
 const api = globalThis.browser ?? globalThis.chrome;
@@ -56,8 +58,18 @@ const modules = () => {
 
 async function atenderPedido(msg, sender) {
   const m = modules();
-  const commands = createCommands({ ...m, platformOs: await platformOs() });
-  const result = await commands.handle({ command: msg.command, request: msg.request }, senderOrigin(sender));
+  const despacho = createDespacho({
+    protocolos: [createEsaj({ matches: api.runtime.getManifest().content_scripts[0].matches })],
+    certs: m.certs,
+    sites: m.sites,
+    assinar: createAssinar(m),
+    platformOs: await platformOs(),
+  });
+  // Sem `protocolo` (aba aberta antes da atualização) é e-SAJ.
+  const result = await despacho.handle(
+    { protocolo: msg.protocolo ?? 'esaj', command: msg.command, request: msg.request },
+    senderOrigin(sender),
+  );
   if (!result.needs) return result;
   const opened = await m.prompts.open(result.needs, {
     origin: senderOrigin(sender), tabId: sender.tab.id, frameId: sender.frameId ?? 0, command: msg.command,

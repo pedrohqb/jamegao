@@ -4,7 +4,9 @@ import assert from 'node:assert/strict';
 import crypto from 'node:crypto';
 import fs from 'node:fs';
 import { createRequire } from 'node:module';
-import { createCommands } from '../../ext/lib/commands.js';
+import { createDespacho } from '../../ext/lib/despacho.js';
+import { createAssinar } from '../../ext/lib/assinar.js';
+import { createEsaj } from '../../ext/protocolos/esaj/fundo.js';
 import { createVault } from '../../ext/lib/vault.js';
 import { createCerts } from '../../ext/lib/certs.js';
 import { createSites } from '../../ext/lib/sites.js';
@@ -16,6 +18,10 @@ import { memoryKv, fakeClock } from './helpers.js';
 
 const forge = createRequire(import.meta.url)('node-forge');
 const O = 'https://exemplo.com.br';
+const montar = ({ vault, certs, sites, credits, platformOs }) => createDespacho({
+  protocolos: [createEsaj({ matches: ['https://exemplo.com.br/*'] })],
+  certs, sites, platformOs, assinar: createAssinar({ vault, sites, credits, certs }),
+});
 let kv, clock, vault, certs, sites, credits, cmd, T, pkcs8, certB64, model;
 
 const pfx = new Uint8Array(fs.readFileSync(new URL('../fix/pf-moderno.pfx', import.meta.url)));
@@ -42,7 +48,7 @@ async function setup({ unlocked = true } = {}) {
   if (!unlocked) await vault.lock();
   sites = createSites(kv);
   credits = createCredits({ session: kv.session, now: clock.now });
-  cmd = createCommands({ vault, certs, sites, credits, platformOs: 'Linux' });
+  cmd = montar({ vault, certs, sites, credits, platformOs: 'Linux' });
 }
 const run = (command, request, origin = O) => cmd.handle({ command, request }, origin);
 
@@ -229,7 +235,7 @@ test('três assinaturas simultâneas com 1 crédito: só uma assina', async () =
 test('erro interno não vaza o texto para a página', async () => {
   await setup();
   await sites.setAllowed(O, true);
-  const boom = createCommands({
+  const boom = montar({
     vault, sites, credits, platformOs: 'Linux',
     certs: { get: async () => { throw new Error('segredo /home/x stack'); } },
   });
@@ -250,7 +256,7 @@ test('cofre trava entre a conferência e a decifragem: pede senha', async () => 
     isUnlocked: async () => (n++ === 0 ? true : false),
     decrypt: async () => { throw new Error('travado'); },
   };
-  const c = createCommands({ vault: racing, certs, sites, credits, platformOs: 'Linux' });
+  const c = montar({ vault: racing, certs, sites, credits, platformOs: 'Linux' });
   const r = await c.handle({ command: 'signData', request: { certificateThumbprint: T, data: 'eA==' } }, O);
   assert.deepEqual(r, { needs: { unlock: true, sign: { count: 1, thumbprint: T } } });
 });
