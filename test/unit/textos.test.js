@@ -22,10 +22,10 @@ function listar(dir) {
 }
 const rel = (p) => relative(ext, p).split(sep).join('/');
 
-// content.js e lib/protocol.js carregam os identificadores técnicos do protocolo
+// protocolos/esaj/conteudo.js e lib/protocol.js carregam os identificadores técnicos do protocolo
 // (IDs oficiais das extensões e prefixos de evento com o nome das marcas): são
 // strings de fio, não texto voltado ao usuário. vendor/ é código de terceiros.
-const EXCLUIDOS = new Set(['content.js', 'lib/protocol.js']);
+const EXCLUIDOS = new Set(['protocolos/esaj/conteudo.js', 'lib/protocol.js']);
 const MARCAS = /websigner|web ?pki|softplan|lacuna/i;
 
 // Comentários de código não chegam ao usuário.

@@ -19,7 +19,7 @@
         "https://esaj.tjce.jus.br/*",
         "https://esaj.tjba.jus.br/*"
       ],
-      "js": ["content.js"],
+      "js": ["conteudo/ponte.js", "protocolos/esaj/conteudo.js"],
       "run_at": "document_start",
       "all_frames": true
     }

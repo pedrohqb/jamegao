@@ -5,7 +5,7 @@
 export const COMPAT_VERSION = '2.99.0';
 
 // Marcas (prefixo dos eventos e IDs de extensão que o SDK procura na página).
-// O content.js, que não é módulo, mantém uma cópia literal idêntica; o teste
+// O protocolos/esaj/conteudo.js, que não é módulo, mantém uma cópia literal idêntica; o teste
 // de unidade confere as duas.
 export const BRANDS = [
   {

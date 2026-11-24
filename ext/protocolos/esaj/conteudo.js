@@ -71,14 +71,12 @@
 
   // --- Extensão oficial na página: o Jamegão se desliga -------------------
   let official = false;
-  const live = new Set(); // confirmações pendentes deste quadro
-  let abandon = () => {}; // definida abaixo
 
   const standDown = () => {
     if (official) return;
     official = true;
     retract();
-    for (const id of [...live]) abandon(id);
+    globalThis.jamegaoPonte.abandonarPendentes();
     Promise.resolve(api.runtime.sendMessage({ type: 'official-seen' })).catch(() => {});
   };
   announced.then((yes) => {
@@ -136,11 +134,6 @@
     }, true);
   }
 
-  const failure = (message) => ({
-    success: false,
-    exception: { message, complete: message, origin: 'extension', code: 'undefined' },
-  });
-
   const reply = (brand, channel, message) => {
     if (official) return;
     const port = brand.prefix + '.ResponseEvent';
@@ -159,93 +152,14 @@
     } catch { /* quadro de origem opaca: não há como responder */ }
   };
 
-  const PROMPT_TIMEOUT_MS = 120000;
-
-  const cancelled = (message) => ({
-    success: false,
-    exception: { message, complete: message, origin: 'extension', code: 'user_cancelled' },
-  });
-
-  // Respostas de confirmação: id -> função que recebe o desfecho. Se o
-  // desfecho chegar antes de alguém esperar por ele, fica guardado em "early".
-  const waiting = new Map();
-  const early = new Map();
-  api.runtime.onMessage.addListener((msg) => {
-    if (!msg || msg.type !== 'prompt-resolved' || typeof msg.id !== 'string') return false;
-    const fn = waiting.get(msg.id);
-    if (fn) fn(msg.outcome);
-    else early.set(msg.id, msg.outcome);
-    return false;
-  });
-
-  abandon = (id) => {
-    live.delete(id);
-    Promise.resolve(api.runtime.sendMessage({ type: 'prompt-abandon', id })).catch(() => {});
-  };
-  // Se a página sai, a confirmação pendente deixa de ter dono.
-  window.addEventListener('pagehide', () => { for (const id of [...live]) abandon(id); });
-
-  const waitPrompt = (id) =>
-    new Promise((resolve) => {
-      live.add(id);
-      let timer = null;
-      const done = (outcome) => {
-        clearTimeout(timer);
-        waiting.delete(id);
-        early.delete(id);
-        live.delete(id);
-        resolve(outcome);
-      };
-      if (early.has(id)) return done(early.get(id));
-      waiting.set(id, done);
-      timer = setTimeout(() => {
-        abandon(id);
-        done(cancelled('Operação cancelada: a confirmação não foi respondida em 120 s.'));
-      }, PROMPT_TIMEOUT_MS);
-    });
-
-  const ask = async (brand, message) => {
-    const result = await api.runtime.sendMessage({
-      type: 'jamegao-pedido',
-      brand: brand.prefix,
-      command: String(message.command),
-      request: message.request ?? null,
-    });
-    if (result && result.pending === true && typeof result.promptId === 'string') return result;
-    if (!result || typeof result.success !== 'boolean') {
-      return failure('Jamegão: resposta inválida da extensão');
-    }
-    return result;
-  };
-
   const handle = async (brand, channel, message) => {
-    let result;
-    try {
-      result = await ask(brand, message);
-      if (result.pending) {
-        let outcome = await waitPrompt(result.promptId);
-        if (outcome === 'retry') {
-          // O usuário aceitou: repete o mesmo pedido, uma única vez.
-          result = await ask(brand, message);
-          if (result.pending) {
-            abandon(result.promptId);
-            outcome = cancelled('Operação cancelada: a confirmação não foi concluída.');
-          } else {
-            outcome = result;
-          }
-        }
-        result = outcome;
-      }
-      if (!result || typeof result.success !== 'boolean') {
-        result = failure('Jamegão: resposta inválida da extensão');
-      }
-    } catch (err) {
-      result = failure('Jamegão: falha ao falar com a extensão (' + (err && err.message) + ')');
-    }
+    const result = await globalThis.jamegaoPonte.pedir('esaj', message.command, message.request);
     reply(brand, channel, { requestId: message.requestId, ...result });
   };
 
-  // Fila única por quadro: um pedido só começa quando o anterior terminou.
+  // Um pedido só começa quando o anterior terminou; se nesse meio tempo a
+  // oficial apareceu (ou o quadro não se anunciou), é descartado. A fila da
+  // ponte serializa o envio ao fundo; esta só decide quem ainda deve ser atendido.
   let queue = Promise.resolve();
   const enqueue = (brand, channel, message) => {
     if (!message || typeof message !== 'object' || typeof message.requestId !== 'string') return;

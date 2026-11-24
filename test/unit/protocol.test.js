@@ -5,9 +5,9 @@ import vm from 'node:vm';
 import { BRANDS, CODES, COMPAT_VERSION, PkiError, fail, ok } from '../../ext/lib/protocol.js';
 
 const brandsFromContentJs = () => {
-  const src = fs.readFileSync(new URL('../../ext/content.js', import.meta.url), 'utf8');
+  const src = fs.readFileSync(new URL('../../ext/protocolos/esaj/conteudo.js', import.meta.url), 'utf8');
   const m = src.match(/const BRANDS = (\[[\s\S]*?\n {2}\]);/);
-  assert.ok(m, 'literal BRANDS não encontrado em content.js');
+  assert.ok(m, 'literal BRANDS não encontrado em protocolos/esaj/conteudo.js');
   return JSON.parse(JSON.stringify(vm.runInNewContext('(' + m[1] + ')')));
 };
 
@@ -33,6 +33,6 @@ test('PkiError carrega o código', () => {
   assert.equal(e.message, 'm');
 });
 
-test('content.js anuncia exatamente as marcas de protocol.js', () => {
+test('protocolos/esaj/conteudo.js anuncia exatamente as marcas de protocol.js', () => {
   assert.deepEqual(brandsFromContentJs(), BRANDS);
 });
