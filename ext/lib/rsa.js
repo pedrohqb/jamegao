@@ -87,19 +87,30 @@ export const signData = async (pkcs8, data, hashName) => {
   return new Uint8Array(sig);
 };
 
+// MD5 fica fora de HASH_LEN/ALIASES: o e-SAJ nunca pode pedir MD5. Só o
+// login do PJe (MD5withRSA) usa, por signMd5Hash.
+const MD5_PREFIX = '3020300c06082a864886f70d020505000410';
+
 export const signHash = async (pkcs8, hash, hashName) => {
   const name = normalizeHash(hashName);
-  if (!(hash instanceof Uint8Array) || hash.length !== HASH_LEN[name]) {
+  return rawSign(pkcs8, hash, name, HASH_LEN[name], PREFIX[name]);
+};
+
+export const signMd5Hash = (pkcs8, hash) => rawSign(pkcs8, hash, 'MD5', 16, MD5_PREFIX);
+
+const rawSign = async (pkcs8, hash, name, len, prefix) => {
+  if (!(hash instanceof Uint8Array) || hash.length !== len) {
     throw new PkiError(`Resumo com tamanho errado para ${name}: ${hash?.length} bytes`, CODES.badRequest);
   }
-  const key = await importRsa(pkcs8, name, true, ['sign']);
+  // O hash do importKey só importa para o WebCrypto; a exponenciação é nossa.
+  const key = await importRsa(pkcs8, name === 'MD5' ? 'SHA-256' : name, true, ['sign']);
   const jwk = await globalThis.crypto.subtle.exportKey('jwk', key);
   const modulus = b64urlToBigInt(jwk.n);
   const pub = b64urlToBigInt(jwk.e);
   const priv = b64urlToBigInt(jwk.d);
   const k = Math.ceil(modulus.toString(2).length / 8);
 
-  const digestInfo = new Uint8Array([...hexToBytes(PREFIX[name]), ...hash]);
+  const digestInfo = new Uint8Array([...hexToBytes(prefix), ...hash]);
   if (k < digestInfo.length + 11) throw new PkiError('Chave RSA curta demais', CODES.badRequest);
   const em = new Uint8Array(k).fill(0xff);
   em[0] = 0x00;
