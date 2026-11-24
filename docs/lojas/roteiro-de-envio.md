@@ -50,9 +50,10 @@ Textos prontos: nome, resumo e descrição longa em `docs/lojas/descricao.md`; p
    e `npm run empacotar`.
 2. Chrome Web Store: no item Jamegão, **Pacote** → **Enviar novo pacote**,
    escolha o zip e **Enviar para análise**.
-3. addons.mozilla.org: **Enviar uma nova versão** → **Por conta própria** →
-   o mesmo zip → código-fonte **Não**. Quando sair assinada, baixe o `.xpi`
-   em **Gerenciar status e versões**.
+3. addons.mozilla.org: **Enviar uma nova versão** → **Neste site** (listada,
+   desde a 0.1.2) → o mesmo zip → código-fonte **Não**. O manifesto não pode
+   ter `update_url`. Quando sair assinada, baixe o `.xpi` em **Gerenciar
+   status e versões**, para a release do GitHub.
 4. GitHub: crie a release `v<versão>` com o `.xpi` renomeado para
-   `jamegao-<versão>-firefox.xpi` (é o nome que o `updates.json` aponta) e o
-   zip renomeado para `jamegao-<versão>-chromium.zip`.
+   `jamegao-<versão>-firefox.xpi` e o zip renomeado para
+   `jamegao-<versão>-chromium.zip`.

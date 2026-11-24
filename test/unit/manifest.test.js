@@ -24,17 +24,18 @@ test('manifesto', () => {
 
 test('valores fixos', () => {
   assert.equal(m.name, 'Jamegão');
-  assert.equal(m.version, '0.1.1');
+  assert.equal(m.version, '0.1.2');
   assert.equal(m.minimum_chrome_version, '121');
   assert.equal(m.action.default_popup, 'pages/popup.html');
   assert.deepEqual(m.background, { service_worker: 'background.js', scripts: ['background.js'], type: 'module' });
   assert.equal(m.browser_specific_settings.gecko.strict_min_version, '140.0');
   assert.equal(m.browser_specific_settings.gecko_android.strict_min_version, '142.0');
-  // Atualização automática do .xpi distribuído fora do catálogo da Mozilla.
-  assert.equal(m.browser_specific_settings.gecko.update_url, 'https://raw.githubusercontent.com/pedrohqb/jamegao/main/updates.json');
+  // Listada na Mozilla: quem atualiza é a própria loja, e a Mozilla recusa
+  // versão listada com endereço próprio de atualização.
+  assert.equal(m.browser_specific_settings.gecko.update_url, undefined);
 });
 
-test('updates.json oferece a versão do manifesto, com o .xpi da release', async () => {
+test('updates.json leva quem tem a 0.1.1 à versão do manifesto, com o .xpi da release', async () => {
   const u = JSON.parse(fs.readFileSync(new URL('../../updates.json', import.meta.url), 'utf8'));
   const versoes = u.addons[m.browser_specific_settings.gecko.id].updates;
   const atual = versoes.find((v) => v.version === m.version);

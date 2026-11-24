@@ -84,16 +84,18 @@ Firefox no ambiente de desenvolvimento). Para rodar:
 - Firefox mínimo 140 e Android mínimo 142 (exigidos pelo
   `data_collection_permissions`), o que cala os dois alertas da validação.
 
-## Próxima versão (quando houver motivo para atualizar)
+## Versão 0.1.2 (24/11/2026): listada na Mozilla
 
-- Listar na Mozilla: enviar como "Neste site", **sem** `update_url` no
-  manifesto (a Mozilla não aceita versão listada com endereço próprio de
-  atualização). Acrescentar no `updates.json` a entrada da versão nova,
-  apontando para o `.xpi` na release do GitHub: quem tem a 0.1.1 chega a
-  ela por ali, e daí em diante (e quem ficou na 0.1.0) é atualizado pela
-  própria Mozilla. Ficha com os textos e capturas de `docs/lojas/`.
-- 0.1.1: aprovada na Mozilla (por conta própria) e enviada à Chrome Web Store
-  em 24/11/2026; release `v0.1.1` no GitHub a criar por Pedro.
+- Igual à 0.1.1, sem `update_url` no manifesto: vai à Mozilla como "Neste
+  site" (listada), e quem atualiza é a própria loja, inclusive quem ficou na
+  0.1.0 (o Firefox consulta a Mozilla para extensões sem endereço próprio).
+- Quem tem a 0.1.1 pelo `.xpi` chega à 0.1.2 pelo `updates.json`, que aponta
+  para `jamegao-0.1.2-firefox.xpi` na release `v0.1.2` do GitHub; daí em
+  diante, a Mozilla atualiza. O `updates.json` fica no repositório para isso.
+- Na Chrome Web Store, a 0.1.1 basta (o código é o mesmo; o Chrome ignora a
+  linha que mudou). A 0.1.2 pode ir junto na próxima mudança de verdade.
+- A release `v0.1.1` no GitHub não precisa ser criada: a `v0.1.2` a
+  substitui.
 
 ## Envio às lojas (22/11/2026)
 

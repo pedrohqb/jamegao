@@ -28,7 +28,7 @@ O Jamegão é um projeto independente, sem vínculo com os fornecedores do e-SAJ
 
 | Navegador | Versão mínima | Como instalar |
 |---|---|---|
-| Firefox | 140 | arquivo `.xpi` assinado pela Mozilla ([abaixo](#firefox)) |
+| Firefox | 140 | [Firefox Add-ons](https://addons.mozilla.org/firefox/addon/jamegao/) ([abaixo](#firefox)) |
 | Google Chrome, Microsoft Edge, Brave, Chromium | 121 | [Chrome Web Store](https://chromewebstore.google.com/detail/pkmhmpmgojhgogcklacckpideochcggj) ([abaixo](#chrome-edge-brave-e-chromium)) |
 
 **Tribunais:** o Jamegão só atua nos portais e-SAJ abaixo. Nos sistemas que já aceitam o certificado direto no navegador (eproc, Projudi, PJe pelo navegador), ele não é necessário.
@@ -50,9 +50,10 @@ Se você usar um desses que ainda não foram testados, conte como foi numa [issu
 
 #### Firefox
 
-1. Baixe o arquivo `jamegao-<versão>-firefox.xpi` da [página de versões](https://github.com/pedrohqb/jamegao/releases).
-2. Arraste o arquivo para uma janela do Firefox e confirme. A instalação é permanente, e a partir da versão 0.1.1 o Firefox atualiza o Jamegão sozinho. Quem instalou a 0.1.0 precisa instalar a 0.1.1 à mão uma vez, do mesmo jeito; o cofre e os certificados continuam.
-3. Em `about:addons` → Jamegão → **Permissões**, confira se o acesso aos sites do e-SAJ está ligado. O Firefox às vezes deixa desligado.
+1. Abra a página do Jamegão em **[Firefox Add-ons](https://addons.mozilla.org/firefox/addon/jamegao/)** e clique em **Adicionar ao Firefox**. A extensão se atualiza sozinha.
+2. Em `about:addons` → Jamegão → **Permissões**, confira se o acesso aos sites do e-SAJ está ligado. O Firefox às vezes deixa desligado.
+
+Quem instalou uma versão anterior pelo arquivo `.xpi` da [página de versões](https://github.com/pedrohqb/jamegao/releases) não precisa fazer nada: o Firefox passa para a versão da loja sozinho, e o cofre e os certificados continuam. O arquivo `.xpi` continua disponível lá, para quem preferir instalar à mão (arrastando-o para o Firefox).
 
 #### Chrome, Edge, Brave e Chromium
 
@@ -185,7 +186,7 @@ It is an independent project, not affiliated with the vendors of e-SAJ or of the
 
 **Works on** Linux, Windows, macOS, ChromeOS and even OpenBSD (e-SAJ login tested), with Firefox 140+ or Chromium-based browsers 121+, on the e-SAJ portals of TJSP, TJAL, TJMS, TJAC, TJCE and TJBA (tested so far on TJSP and TJAL).
 
-**Install.** Firefox: download the Mozilla-signed `.xpi` from the [releases page](https://github.com/pedrohqb/jamegao/releases) and drag it into Firefox; then check in `about:addons` → Jamegão → Permissions that site access is on. Chromium browsers (Chrome, Edge, Brave): install from the [Chrome Web Store](https://chromewebstore.google.com/detail/pkmhmpmgojhgogcklacckpideochcggj). Jamegão is for people who do not use the official signing extensions: if one is active on the page, Jamegão turns itself off there, so disable them in that browser profile.
+**Install.** Firefox: install from [Firefox Add-ons](https://addons.mozilla.org/firefox/addon/jamegao/); then check in `about:addons` → Jamegão → Permissions that site access is on. Chromium browsers (Chrome, Edge, Brave): install from the [Chrome Web Store](https://chromewebstore.google.com/detail/pkmhmpmgojhgogcklacckpideochcggj). Jamegão is for people who do not use the official signing extensions: if one is active on the page, Jamegão turns itself off there, so disable them in that browser profile.
 
 **Use.** Import your PFX once and set a vault password (8+ characters); the private key is stored encrypted in the browser profile. On e-SAJ, choose certificate login as usual. The first time on each court site, Jamegão asks whether the site may see your certificates; every signature, single or batch, needs your confirmation in Jamegão's own window, which shows how many documents will be signed. The vault locks after 30 minutes idle and when the browser closes.
 
