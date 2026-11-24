@@ -53,7 +53,18 @@ async function importar(page, { arquivo, senhaPfx = 'senha123', cofre, cofre2 })
   await page.waitForSelector('#status.ok, #status.erro');
   return page.$eval('#status', (el) => ({ cls: el.className, texto: el.textContent }));
 }
-const itens = (page) => page.$$eval('#certs li', (l) => l.length);
+// A página redesenha a lista depois de mostrar o status (finally de importar):
+// só vale a contagem que não muda entre duas leituras.
+const itens = async (page) => {
+  const contar = () => page.$$eval('#certs li', (l) => l.length);
+  let a = await contar();
+  for (;;) {
+    await new Promise((r) => setTimeout(r, 250));
+    const b = await contar();
+    if (a === b) return b;
+    a = b;
+  }
+};
 const fx = (n) => path.join(FIX, n);
 
 test('primeira importação cria o cofre', async () => {

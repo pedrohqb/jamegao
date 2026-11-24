@@ -161,12 +161,24 @@ Precisa de Node 22 ou mais novo e de Chrome ou Chromium instalado.
     npm run unit         # testes de unidade (≈3 s)
     npm run e2e          # ponta a ponta no Chrome (≈4 min)
 
-Para o Firefox (nunca rodou; espere ajustes no harness):
+Para o Firefox (testado no 161, headless, ≈5 min):
 
     BROWSER=firefox FIREFOX_BIN=/caminho/do/firefox npm run e2e
+
+O harness já põe `MOZ_REMOTE_ALLOW_SYSTEM_ACCESS=1` (sem isso o WebDriver BiDi
+recusa navegar para `moz-extension://`). Além disso, o BiDi do Firefox ignora
+de propósito os documentos de extensão (bug 1755014 da Mozilla): não emite
+`load`, não atualiza `page.url()`, não avisa quando uma janela de extensão
+fecha e recusa `input.*` e `evaluateOnNewDocument` nelas. O harness contorna
+isso só no Firefox (`apoiarPaginasDaExtensao`): espera o documento por
+`evaluate`, lê o URL real por um relógio, dá a janela por fechada quando o
+contexto some, e faz `click`, `reload` e `uploadFile` dentro da página. Quando
+a Mozilla corrigir o bug, o apoio pode sair.
 
 Um arquivo só, por exemplo para repetir o de convivência:
 
     node --test test/e2e/convivencia.test.mjs
 
-Estado em 22/11/2026: unidade 140/140, ponta a ponta no Chrome 39/39.
+Estado em 24/11/2026: unidade 143/143, ponta a ponta no Chrome 39/39 e no
+Firefox 161 38/38 (1 caso, "fundo encerrado no meio do lote", fica SKIP no
+Firefox).

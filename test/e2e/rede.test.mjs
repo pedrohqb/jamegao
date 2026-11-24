@@ -2,7 +2,9 @@ import { test, before, after } from 'node:test';
 import assert from 'node:assert/strict';
 import fs from 'node:fs';
 import http from 'node:http';
-import { launch } from './harness.mjs';
+import path from 'node:path';
+import { launch, FIX } from './harness.mjs';
+import { criarAjudas } from './ajudas.mjs';
 
 // Servidor próprio que registra todo pedido recebido (o do harness não loga).
 let h;
@@ -106,9 +108,27 @@ test('fundo e páginas não conseguem abrir conexão', async () => {
     const page = await h.browser.newPage();
     try {
       // confirm.html fecha a si mesma sem um pedido válido; a página tem de ficar aberta.
-      await page.evaluateOnNewDocument(() => { window.close = () => {}; });
-      await page.goto(h.extUrl(p));
-      resultados[nome] = await page.evaluate(`(${tentativas})(${JSON.stringify(bases)}, ${JSON.stringify(nome)}, true)`);
+      if (h.name === 'firefox' && nome === 'confirm') {
+        // O BiDi do Firefox não aplica evaluateOnNewDocument em páginas de
+        // extensão, e a confirm.html fecha a si mesma sem um pedido válido.
+        // Aqui o pedido é real: a janela que a extensão abre fica de pé
+        // enquanto o teste a exercita.
+        const a = criarAjudas(h);
+        await h.importPfx(path.join(FIX, 'pf-moderno.pfx'), 'senha123', 'cofre-forte-1');
+        const site = await a.abrirPagina(h.origin, 'softplan-emulado-2.8.0.js');
+        a.chamar(site, () => window.listar());
+        const janela = await a.janela(h.origin);
+        try {
+          resultados[nome] = await janela.evaluate(`(${tentativas})(${JSON.stringify(bases)}, ${JSON.stringify(nome)}, true)`);
+        } finally {
+          await janela.close().catch(() => {});
+          await site.close().catch(() => {});
+        }
+      } else {
+        await page.evaluateOnNewDocument(() => { window.close = () => {}; });
+        await page.goto(h.extUrl(p));
+        resultados[nome] = await page.evaluate(`(${tentativas})(${JSON.stringify(bases)}, ${JSON.stringify(nome)}, true)`);
+      }
     } finally {
       await page.close().catch(() => {});
     }
