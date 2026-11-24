@@ -7,7 +7,7 @@ import fs from 'node:fs';
 import os from 'node:os';
 import path from 'node:path';
 import { createRequire } from 'node:module';
-import { launch } from './harness.mjs';
+import { launch, FIX } from './harness.mjs';
 import { criarAjudas } from './ajudas.mjs';
 import { ligarPje, abrirPje } from './ajudas-pje.mjs';
 import { gerar } from '../fix/gerar.mjs';
@@ -211,6 +211,7 @@ test('"Usar o programa instalado": a chamada segue para o localhost', async () =
   const resultado = logar(page);
   const j = await a.janela(SSO);
   assert.equal(await j.$eval('#programa', (b) => b.hidden), false);
+  assert.equal(await j.$eval('#programa', (b) => b.textContent), 'Usar o programa instalado');
   await a.responder(j, '#programa');
   assert.deepEqual(await resultado, { ping: 'ok', res: 'indisponivel' });
   assert.equal(localhost.length, 1);
@@ -289,6 +290,217 @@ test('documento recusado pelo servidor não impede os seguintes; a resposta é 2
   await a.responder(await a.janela(TJMA), '#confirmar', COFRE);
   assert.equal(await resultado, 'erro');
   assert.deepEqual(envios.map((e) => campos(e).id), [ARQUIVOS[0].id, ARQUIVOS[1].id]);
+});
+
+test('login do SSO dentro de um quadro da mesma origem', async () => {
+  const { page, localhost, envios } = await abrir(SSO + '/auth/realms/pje/topo', { rotas: rotasSso });
+  await page.evaluate((u) => new Promise((ok) => {
+    const f = document.createElement('iframe');
+    f.onload = ok;
+    f.src = u;
+    document.body.append(f);
+  }), SSO + '/auth/realms/pje/quadro');
+  const quadro = page.frames().find((f) => f.url().endsWith('/auth/realms/pje/quadro'));
+  assert.ok(quadro, 'o quadro não carregou');
+  assert.equal(await quadro.evaluate(() => window.__jamegaoPje), true, 'os scripts do PJe não estão no quadro');
+  const resultado = logar(quadro);
+  const j = await a.janela(SSO);
+  assert.match(await textoAssinatura(j), /^Entrar no PJe de https:\/\/sso\.cloud\.pje\.jus\.br com o certificado de /);
+  await a.responder(j, '#confirmar', COFRE);
+  assert.deepEqual(await resultado, { ping: 'ok', res: 'ok' });
+  assert.deepEqual(localhost, []);
+  assert.equal(envios.length, 1);
+  assert.equal(envios[0].url, SSO + '/auth/realms/pje/pjeoffice-rest');
+  assert.ok(crypto.verify('md5', Buffer.from(MENSAGEM), publicKey, Buffer.from(JSON.parse(envios[0].corpo).assinatura, 'base64')));
+});
+
+test('modoTeste true (booleano): sem janela, a chamada segue para o localhost', async () => {
+  const { page, localhost, envios } = await abrir(TJMA + '/pje/x.seam');
+  assert.equal(await assinar(page, lote(ARQUIVOS, { modoTeste: true })), 'indisponivel');
+  await a.semJanela(500);
+  assert.equal(localhost.length, 1);
+  assert.equal(envios.length, 0);
+});
+
+test('uploadUrl que leva a outra origem: 2×1, sem janela e sem envio', async () => {
+  const { page, localhost, envios, outros } = await abrir(TJMA + '/pje/x.seam');
+  // servidor + uploadUrl = https://pje.tjma.jus.br@outro.jus.br/... (outro.jus.br)
+  const r = await assinar(page, lote(ARQUIVOS, { uploadUrl: '@outro.jus.br/upload.seam' }), { servidor: TJMA });
+  assert.equal(r, 'erro');
+  await a.semJanela(500);
+  assert.deepEqual(localhost, []);
+  assert.deepEqual(outros, []);
+  assert.equal(envios.length, 0);
+});
+
+test('enviarPara que leva a outra origem: 2×1, sem janela e sem envio', async () => {
+  const { page, localhost, envios, outros } = await abrir(SSO + '/auth/realms/pje/x', { rotas: rotasSso });
+  // servidor + enviarPara = https://sso.cloud.pje.jus.br.outro.com.br/... (outra origem)
+  const r = await page.evaluate((m) => window.chamar(window.requisicao('sso.autenticador',
+    { enviarPara: '.outro.com.br/pjeoffice-rest', mensagem: m, token: 'tok-1' }, { servidor: location.origin })), MENSAGEM);
+  assert.equal(r, 'erro');
+  await a.semJanela(500);
+  assert.deepEqual(localhost, []);
+  assert.deepEqual(outros, []);
+  assert.equal(envios.length, 0);
+});
+
+test('pedido sem enviarPara ou sem uploadUrl: 2×1, sem janela e sem envio', async () => {
+  const sso = await abrir(SSO + '/auth/realms/pje/x', { rotas: rotasSso });
+  for (const enviarPara of [undefined, '']) {
+    const r = await sso.page.evaluate((m, e) => window.chamar(window.requisicao('sso.autenticador',
+      { enviarPara: e, mensagem: m, token: 'tok-1' }, { servidor: location.origin + '/auth/realms/pje' })), MENSAGEM, enviarPara);
+    assert.equal(r, 'erro', `enviarPara ${JSON.stringify(enviarPara)}`);
+  }
+  const tjma = await abrir(TJMA + '/pje/x.seam', { rotas: rotasTjma() });
+  for (const uploadUrl of [undefined, '']) {
+    assert.equal(await assinar(tjma.page, lote(ARQUIVOS, { uploadUrl })), 'erro', `uploadUrl ${JSON.stringify(uploadUrl)}`);
+  }
+  await a.semJanela(500);
+  assert.deepEqual([...sso.localhost, ...tjma.localhost], []);
+  assert.deepEqual([...sso.envios, ...tjma.envios], []);
+});
+
+test('login respondido com redirecionamento: vale como o 302 de sucesso, e o redirecionamento não é seguido', async () => {
+  const redirecionar = () => ({ status: 302, headers: { location: 'https://outro.jus.br/depois-do-login' }, body: '' });
+  const { page, localhost, envios, outros } = await abrir(SSO + '/auth/realms/pje/x', { rotas: redirecionar });
+  const resultado = logar(page);
+  await a.responder(await a.janela(SSO), '#confirmar', COFRE);
+  assert.deepEqual(await resultado, { ping: 'ok', res: 'ok' });
+  await new Promise((r) => setTimeout(r, 300));
+  assert.deepEqual(localhost, []);
+  assert.deepEqual(outros, []);
+  assert.deepEqual(envios.map((e) => e.url), [SSO + '/auth/realms/pje/pjeoffice-rest']);
+});
+
+test('documento respondido com redirecionamento (307): falha dele, e a assinatura não vai a outra origem', async () => {
+  let n = 0;
+  const rotas = () => (++n === 1
+    ? { status: 307, headers: { location: 'https://outro.jus.br/recebe' }, body: '' }
+    : { status: 200, contentType: 'text/plain', body: 'Sucesso' });
+  const { page, localhost, envios, outros } = await abrir(TJMA + '/pje/x.seam', { rotas });
+  const resultado = assinar(page, lote(ARQUIVOS));
+  await a.responder(await a.janela(TJMA), '#confirmar', COFRE);
+  assert.equal(await resultado, 'erro');
+  await new Promise((r) => setTimeout(r, 300));
+  assert.deepEqual(localhost, []);
+  assert.deepEqual(outros, []);
+  // Os dois documentos foram à própria origem, uma vez cada; nada a outra.
+  assert.deepEqual(envios.map((e) => [e.url, campos(e).id]), ARQUIVOS.map((x) => [TJMA + '/pje' + UPLOAD, x.id]));
+});
+
+test('mundo isolado que não responde: a chamada segue para o localhost, sem travar', async () => {
+  const { page, localhost, envios } = await abrir(SSO + '/auth/realms/pje/x', { rotas: rotasSso });
+  // Os pedidos do script da página não chegam ao mundo isolado (como com a
+  // extensão desativada, quando o script da página fica).
+  await page.evaluate(() => window.addEventListener('jamegao-pje-pedido', (e) => e.stopPropagation(), true));
+  assert.deepEqual(await logar(page), { ping: 'indisponivel', res: 'indisponivel' });
+  await a.semJanela(500);
+  assert.equal(localhost.length, 2);
+  assert.equal(envios.length, 0);
+});
+
+test('recusa do usuário não vai ao console; outras falhas vão, com [Jamegão]', async () => {
+  const { page, consoleDaPagina } = await abrir(SSO + '/auth/realms/pje/x', { rotas: rotasSso });
+  const resultado = logar(page);
+  await a.responder(await a.janela(SSO), '#recusar');
+  assert.deepEqual(await resultado, { ping: 'ok', res: 'erro' });
+  await new Promise((r) => setTimeout(r, 300));
+  assert.deepEqual(consoleDaPagina.filter((t) => t.includes('[Jamegão]')), []);
+  // Controle: uma falha que não é do usuário aparece.
+  const r = await page.evaluate(() => window.chamar(window.requisicao('sso.autenticador', { mensagem: 'x', token: 't' })));
+  assert.equal(r, 'erro');
+  for (const fim = Date.now() + 3000; Date.now() < fim && !consoleDaPagina.length;) await new Promise((ok) => setTimeout(ok, 50));
+  assert.ok(consoleDaPagina.some((t) => t.includes('[Jamegão]')), 'a falha deveria ir ao console: ' + consoleDaPagina.join(' | '));
+});
+
+// Daqui em diante há dois certificados com cadeia.
+test('dois certificados: a janela mostra o seletor, marca o último usado e assina com o escolhido', async () => {
+  await h.importPfx(path.join(FIX, 'pj-legado.pfx'), 'outra senha', COFRE);
+  const pjCert = new crypto.X509Certificate(fs.readFileSync(path.join(FIX, 'pj.crt')));
+  const { page, localhost, envios } = await abrir(SSO + '/auth/realms/pje/x', { rotas: rotasSso });
+  const opcoesDe = (j) => j.$eval('#certificado', (s) => [...s.options].map((o) => ({ valor: o.value, texto: o.textContent, marcado: o.selected })));
+
+  // Primeira vez nesta origem: o seletor aparece, com os dois.
+  let resultado = logar(page);
+  let j = await a.janela(SSO);
+  assert.equal(await j.$eval('#bloco-certificado', (b) => b.hidden), false);
+  assert.equal(await j.$eval('label[for="certificado"]', (l) => l.textContent), 'Certificado');
+  let opcoes = await opcoesDe(j);
+  assert.equal(opcoes.length, 2);
+  const pj = opcoes.find((o) => o.texto.includes('EMPRESA: TESTE LTDA'));
+  const titular = opcoes.find((o) => o.texto.includes('TITULAR COM CADEIA'));
+  assert.ok(pj && titular, JSON.stringify(opcoes));
+  for (const o of opcoes) assert.match(o.texto, /^.+ \(válido até \d{4}-\d{2}-\d{2}\)$/);
+  // Escolhe o da empresa; o texto acompanha.
+  await j.$eval('#certificado', (s, v) => { s.value = v; s.dispatchEvent(new Event('change')); }, pj.valor);
+  assert.match(await textoAssinatura(j), /^Entrar no PJe de https:\/\/sso\.cloud\.pje\.jus\.br com o certificado de .*EMPRESA: TESTE LTDA.*\.$/);
+  await a.responder(j, '#confirmar', COFRE);
+  assert.deepEqual(await resultado, { ping: 'ok', res: 'ok' });
+  let body = JSON.parse(envios[0].corpo);
+  assert.ok(crypto.verify('md5', Buffer.from(MENSAGEM), pjCert.publicKey, Buffer.from(body.assinatura, 'base64')));
+  assert.deepEqual(corpoPkiPath(body.certChain), pjCert.raw);
+
+  // Segunda vez: o da empresa já vem marcado.
+  resultado = logar(page);
+  j = await a.janela(SSO);
+  opcoes = await opcoesDe(j);
+  assert.deepEqual(opcoes.filter((o) => o.marcado).map((o) => o.valor), [pj.valor]);
+  assert.match(await textoAssinatura(j), /com o certificado de .*EMPRESA: TESTE LTDA/);
+  // Volta ao outro: a assinatura sai com ele.
+  await j.$eval('#certificado', (s, v) => { s.value = v; s.dispatchEvent(new Event('change')); }, titular.valor);
+  assert.match(await textoAssinatura(j), /com o certificado de .*TITULAR COM CADEIA/);
+  await a.responder(j, '#confirmar');
+  assert.deepEqual(await resultado, { ping: 'ok', res: 'ok' });
+  body = JSON.parse(envios[1].corpo);
+  assert.ok(crypto.verify('md5', Buffer.from(MENSAGEM), publicKey, Buffer.from(body.assinatura, 'base64')));
+  assert.deepEqual(corpoPkiPath(body.certChain), Buffer.concat([raizDer, titularDer]));
+  assert.deepEqual(localhost, []);
+});
+
+// Janela que não pede decisão: só o aviso de certificado sem cadeia.
+async function janelaDeAviso() {
+  for (const fim = Date.now() + 15000; Date.now() < fim;) {
+    for (const p of await a.confirmPages()) {
+      if ((await p.$eval('#cadeia', (e) => !e.hidden).catch(() => false))) return p;
+    }
+    await new Promise((r) => setTimeout(r, 100));
+  }
+  throw new Error('janela do aviso não apareceu');
+}
+
+test('certificados sem cadeia (importados antes do PJe): aviso com "Fechar" e nada é assinado', async () => {
+  // Os registros perdem a cadeia, como os importados antes desta versão.
+  const ext = await h.browser.newPage();
+  await ext.goto(h.extUrl('pages/import.html'));
+  assert.equal(await ext.evaluate(async () => {
+    const { createCerts } = await import('/lib/certs.js');
+    const certs = createCerts();
+    const lista = await certs.list();
+    for (const e of lista) {
+      delete e.chainB64;
+      await certs.put(e);
+    }
+    return (await certs.list()).filter((e) => e.chainB64 === undefined).length;
+  }), 2);
+  await ext.close();
+
+  const { page, localhost, envios, consoleDaPagina } = await abrir(SSO + '/auth/realms/pje/x', { rotas: rotasSso });
+  for (let vez = 1; vez <= 2; vez++) {
+    // Fechar o aviso não pausa o site: a segunda vez mostra o aviso de novo.
+    const resultado = logar(page);
+    const j = await janelaDeAviso();
+    assert.equal(await j.$eval('#cadeia', (e) => e.textContent),
+      'Este certificado foi importado antes do suporte ao PJe. Importe o certificado de novo para usar no PJe.');
+    assert.deepEqual(await j.$eval('body', (b) => [...b.querySelectorAll('button')].filter((x) => !x.hidden).map((x) => x.textContent)), ['Fechar']);
+    assert.equal(await j.$eval('#origem', (e) => e.hidden), true);
+    assert.equal(await j.$eval('#bloco-senha', (e) => e.hidden), true);
+    await a.responder(j, '#fechar');
+    assert.deepEqual(await resultado, { ping: 'ok', res: 'erro' }, `vez ${vez}`);
+  }
+  assert.deepEqual(localhost, []);
+  assert.equal(envios.length, 0);
+  assert.deepEqual(consoleDaPagina.filter((t) => t.includes('[Jamegão]')), []);
 });
 
 // Por último: apaga o certificado.

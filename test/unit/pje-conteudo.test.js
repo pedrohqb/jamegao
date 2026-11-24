@@ -41,7 +41,7 @@ function mundo(respostas) {
     document.addEventListener('jamegao-pje-resposta', ouvir);
     document.dispatchEvent(new CustomEvent('jamegao-pje-pedido', { detail: JSON.stringify(msg) }));
   });
-  return { pedidos, pedir };
+  return { pedidos, pedir, document };
 }
 
 const b64 = (b) => Buffer.from(b).toString('base64');
@@ -82,4 +82,42 @@ test('ação desconhecida responde falha sem falar com o fundo', async () => {
 test("desfecho 'programa' e falhas passam como vieram", async () => {
   const m = mundo([{ programa: true }]);
   assert.deepEqual(await m.pedir({ id: 'p', acao: 'assinar', pedido: { tipo: 'login', mensagem: 'oi' } }), { programa: true });
+});
+
+test('documentos vindos da página sempre pedem janela nova (novo: true)', async () => {
+  const falha = { success: false, exception: { message: 'x', code: 'undefined' } };
+  const m = mundo([falha, falha, falha]);
+  for (const novo of [false, 'false', undefined]) {
+    await m.pedir({ id: 'n' + novo, acao: 'assinar', pedido: { tipo: 'documentos', resumos: ['a'], novo } });
+  }
+  assert.deepEqual(m.pedidos.map((p) => p.pedido.novo), [true, true, true]);
+  // Só a repetição feita pela ponte, depois da confirmação, vai sem.
+  assert.equal(m.pedidos[0].opcoes.repetir(m.pedidos[0].pedido).novo, false);
+});
+
+test('login não leva novo, mesmo que a página mande', async () => {
+  const m = mundo([{ success: false, exception: { message: 'x', code: 'undefined' } }]);
+  await m.pedir({ id: 'l', acao: 'assinar', pedido: { tipo: 'login', mensagem: 'oi', novo: true } });
+  assert.equal(m.pedidos[0].pedido.novo, undefined);
+});
+
+test('falha do fundo chega à página como veio', async () => {
+  const falhas = [
+    { success: false, exception: { message: 'Operação cancelada.', complete: 'Operação cancelada.', origin: 'extension', code: 'user_cancelled' } },
+    { success: false, exception: { message: 'Algoritmo não suportado: X', complete: 'Algoritmo não suportado: X', origin: 'extension', code: 'bad_request' } },
+  ];
+  const m = mundo(structuredClone(falhas));
+  assert.deepEqual(await m.pedir({ id: 'c', acao: 'assinar', pedido: { tipo: 'login', mensagem: 'oi' } }), falhas[0]);
+  assert.deepEqual(await m.pedir({ id: 'b', acao: 'assinar', pedido: { tipo: 'documentos', resumos: ['a'] } }), falhas[1]);
+});
+
+test('o pedido recebido é confirmado na hora, antes de qualquer resposta', () => {
+  const m = mundo([new Promise(() => {})]);
+  const recebidos = [];
+  m.document.addEventListener('jamegao-pje-recebido', (ev) => recebidos.push(JSON.parse(ev.detail).id));
+  m.document.dispatchEvent(new CustomEvent('jamegao-pje-pedido', { detail: JSON.stringify({ id: 'r1', acao: 'estado', pedido: {} }) }));
+  assert.deepEqual(recebidos, ['r1']);
+  // Pedido ilegível não é confirmado.
+  m.document.dispatchEvent(new CustomEvent('jamegao-pje-pedido', { detail: '{' }));
+  assert.deepEqual(recebidos, ['r1']);
 });

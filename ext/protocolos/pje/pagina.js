@@ -67,11 +67,20 @@
   };
 
   // Pedido à extensão por evento, com o detalhe em texto JSON (o texto
-  // atravessa os mundos sem cópia de objetos).
+  // atravessa os mundos sem cópia de objetos). O mundo isolado confirma o
+  // recebimento durante o próprio dispatchEvent, que é síncrono; sem a
+  // confirmação, ele não está aqui (extensão desativada, por exemplo), e a
+  // resposta é SEM_PONTE: a chamada segue para o localhost.
+  const SEM_PONTE = Symbol('sem ponte');
+  const mesmoId = (ev, id) => {
+    try { return parse(ev.detail)?.id === id; } catch { return false; }
+  };
   let seq = 0;
   const pedir = (acao, pedido) =>
     new Promise((resolve) => {
       const id = 'pje-' + (++seq) + '-' + Math.random().toString(36).slice(2);
+      let recebido = false;
+      const confirmar = (ev) => { if (mesmoId(ev, id)) recebido = true; };
       const ouvir = (ev) => {
         let r;
         try { r = parse(ev.detail); } catch { return; }
@@ -79,9 +88,34 @@
         document.removeEventListener('jamegao-pje-resposta', ouvir);
         resolve(r.resposta);
       };
+      document.addEventListener('jamegao-pje-recebido', confirmar);
       document.addEventListener('jamegao-pje-resposta', ouvir);
       document.dispatchEvent(new CustomEvent('jamegao-pje-pedido', { detail: paraJson({ id, acao, pedido }) }));
+      document.removeEventListener('jamegao-pje-recebido', confirmar);
+      if (!recebido) {
+        document.removeEventListener('jamegao-pje-resposta', ouvir);
+        resolve(SEM_PONTE);
+      }
     });
+
+  // Destino em texto não vazio; sem ele, `servidor + caminho` daria um
+  // endereço da própria origem que o PJe não pediu.
+  const temDestino = (caminho, nome) => {
+    if (typeof caminho === 'string' && caminho) return true;
+    console.warn(TAG, `Pedido do PJe sem ${nome}.`);
+    return false;
+  };
+
+  // O envio leva a assinatura: não segue redirecionamento (que poderia
+  // reenviá-la a outra origem). O redirecionamento chega como resposta
+  // "opaqueredirect".
+  const enviar = (alvo, headers, body) => fetchOriginal(alvo, {
+    method: 'POST',
+    credentials: 'same-origin',
+    redirect: 'manual',
+    headers,
+    body,
+  });
 
   // Destino do envio: só a mesma origem da página.
   const destino = (servidor, caminho) => {
@@ -96,26 +130,40 @@
   // Resultado de uma tarefa: true (1×1), false (2×1) ou ORIGINAL (a chamada
   // segue para o localhost).
   const ORIGINAL = Symbol('original');
+  // Cancelamento pelo usuário não é erro: não vai ao console.
   const desfecho = (r, depois) => {
-    if (r && r.programa === true) return ORIGINAL;
+    if (r === SEM_PONTE || (r && r.programa === true)) return ORIGINAL;
     if (!r || r.success !== true) {
-      console.warn(TAG, 'Assinatura não feita:', (r && r.exception && r.exception.message) || 'falha');
+      const e = r && r.exception;
+      if (!e || e.code !== 'user_cancelled') console.warn(TAG, 'Assinatura não feita:', (e && e.message) || 'falha');
       return false;
     }
     return depois(r.response);
   };
 
+  // Uma assinatura por item pedido, nem mais nem menos.
+  const assinaturasDe = (resposta, n) => {
+    const a = resposta && resposta.assinaturas;
+    if (Array.isArray(a) && a.length === n) return a;
+    console.warn(TAG, 'Resposta da extensão com número de assinaturas inesperado.');
+    return null;
+  };
+
   async function login(r, tarefa) {
+    if (!temDestino(tarefa.enviarPara, 'destino do login')) return false;
     const alvo = destino(r.servidor, tarefa.enviarPara);
     if (!alvo) return false;
     const res = await pedir('assinar', { tipo: 'login', mensagem: tarefa.mensagem, algoritmo: tarefa.algoritmoAssinatura });
-    return desfecho(res, async ({ assinaturas, cadeia }) => {
-      const resp = await fetchOriginal(alvo, {
-        method: 'POST',
-        credentials: 'same-origin',
-        headers: { 'Content-Type': 'application/json', Accept: 'application/json', versao: VERSAO },
-        body: paraJson({ uuid: tarefa.token, mensagem: tarefa.mensagem, assinatura: assinaturas[0], certChain: cadeia }),
-      });
+    return desfecho(res, async (resposta) => {
+      const assinaturas = assinaturasDe(resposta, 1);
+      if (!assinaturas) return false;
+      const resp = await enviar(
+        alvo,
+        { 'Content-Type': 'application/json', Accept: 'application/json', versao: VERSAO },
+        paraJson({ uuid: tarefa.token, mensagem: tarefa.mensagem, assinatura: assinaturas[0], certChain: resposta.cadeia }),
+      );
+      // O 302 do PJe, sem segui-lo.
+      if (resp.type === 'opaqueredirect') return true;
       if (!SUCESSO.has(resp.status)) console.warn(TAG, 'O PJe recusou o login: código', resp.status);
       return SUCESSO.has(resp.status);
     });
@@ -124,12 +172,15 @@
   // Um documento: o servidor responde texto, "Sucesso" ou "Erro: ...".
   async function enviarDocumento(alvo, campos) {
     try {
-      const resp = await fetchOriginal(alvo, {
-        method: 'POST',
-        credentials: 'same-origin',
-        headers: { 'Content-Type': 'application/x-www-form-urlencoded; charset=UTF-8', versao: VERSAO },
-        body: new URLSearchParams(campos).toString(),
-      });
+      const resp = await enviar(
+        alvo,
+        { 'Content-Type': 'application/x-www-form-urlencoded; charset=UTF-8', versao: VERSAO },
+        new URLSearchParams(campos).toString(),
+      );
+      if (resp.type === 'opaqueredirect') {
+        console.warn(TAG, `O PJe redirecionou o envio do documento ${campos.id}; não foi seguido.`);
+        return false;
+      }
       const texto = (await resp.text()).trim();
       if (resp.ok && texto.startsWith('Sucesso')) return true;
       console.warn(TAG, `O PJe recusou o documento ${campos.id}:`, resp.status, texto.slice(0, 200));
@@ -140,6 +191,7 @@
   }
 
   async function documentos(r, tarefa) {
+    if (!temDestino(tarefa.uploadUrl, 'destino dos documentos')) return false;
     const alvo = destino(r.servidor, tarefa.uploadUrl);
     if (!alvo) return false;
     let arquivos = tarefa.arquivos;
@@ -153,9 +205,11 @@
       tipo: 'documentos',
       resumos: arquivos.map((a) => (a.hash === undefined || a.hash === null ? '' : String(a.hash))),
       algoritmo: tarefa.algoritmoAssinatura,
-      novo: true,
     });
-    return desfecho(res, async ({ assinaturas, cadeia }) => {
+    return desfecho(res, async (resposta) => {
+      const assinaturas = assinaturasDe(resposta, arquivos.length);
+      if (!assinaturas) return false;
+      const { cadeia } = resposta;
       // Um por vez, na ordem; falha num não impede os seguintes.
       let todos = true;
       for (let i = 0; i < arquivos.length; i++) {

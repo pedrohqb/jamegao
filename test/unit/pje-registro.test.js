@@ -340,3 +340,61 @@ test('outra permissão retirada: nada muda', async () => {
   assert.equal(e.scripts.size, 2);
   assert.equal(await escolha(e), true);
 });
+
+// Registro que sobrou de uma versão anterior (outros caminhos, outros sites):
+// registrar e acertar trocam pelo atual. O navegador devolve o registro do
+// seu jeito (caminhos sem a barra, mundo isolado explícito, campos a mais,
+// listas em outra ordem); isso não conta como diferença.
+const comoONavegador = (s) => ({
+  ...structuredClone(s),
+  js: s.js.map((j) => j.replace(/^\//, '')),
+  world: s.world ?? 'ISOLATED',
+  excludeMatches: [...s.excludeMatches].reverse(),
+  matchOriginAsFallback: false,
+  cssOrigin: 'author',
+});
+
+test('registrar e acertar: registro do jeito que o navegador devolve não é trocado', async () => {
+  for (const fazer of [(e) => registrar(e.api), (e) => acertar(e.api, e.kv)]) {
+    const e = apiFalsa({ concedida: true, escolha: true });
+    for (const s of ESPERADOS) e.scripts.set(s.id, comoONavegador(s));
+    await fazer(e);
+    assert.deepEqual(e.chamadas, []);
+  }
+});
+
+const VELHOS = {
+  js: (s) => ({ ...s, js: s.js.map((j) => j.replace('protocolos/pje/', 'pje/')) }),
+  'ordem dos js': (s) => ({ ...s, js: [...s.js].reverse() }),
+  matches: (s) => ({ ...s, matches: ['https://*.tjma.jus.br/*'] }),
+  excludeMatches: (s) => ({ ...s, excludeMatches: s.excludeMatches.slice(1) }),
+  'sem excludeMatches': (s) => { const { excludeMatches, ...resto } = s; return resto; },
+  world: (s) => ({ ...s, world: s.world === 'MAIN' ? 'ISOLATED' : 'MAIN' }),
+  allFrames: (s) => ({ ...s, allFrames: false }),
+};
+
+for (const [campo, envelhecer] of Object.entries(VELHOS)) {
+  test(`registrar e acertar: registro antigo com outro ${campo} é trocado pelo atual`, async () => {
+    for (const fazer of [(e) => registrar(e.api), (e) => acertar(e.api, e.kv)]) {
+      for (const qual of IDS) {
+        const esperado = ESPERADOS.find((s) => s.id === qual);
+        // Inverter a lista de um só não muda nada.
+        if (JSON.stringify(envelhecer(esperado)) === JSON.stringify(esperado)) continue;
+        const e = apiFalsa({ concedida: true, escolha: true });
+        for (const s of ESPERADOS) e.scripts.set(s.id, s.id === qual ? envelhecer(comoONavegador(s)) : comoONavegador(s));
+        await fazer(e);
+        assert.deepEqual(IDS.map((id) => e.scripts.get(id)), ESPERADOS, `${campo} em ${qual}`);
+        assert.ok(e.chamadas.includes('unregister') && e.chamadas.includes('register'));
+      }
+    }
+  });
+}
+
+test('registrar: outro contexto registra o antigo no meio do caminho: o erro chega a quem chamou', async () => {
+  const e = apiFalsa({ concedida: true });
+  e.antes.register = () => {
+    e.antes.register = undefined;
+    for (const s of ESPERADOS) e.scripts.set(s.id, VELHOS.js(structuredClone(s)));
+  };
+  await assert.rejects(registrar(e.api), /Duplicate script ID/);
+});

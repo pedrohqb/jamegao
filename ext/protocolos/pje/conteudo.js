@@ -44,13 +44,16 @@
   // Só estes campos de cada pedido seguem para o fundo.
   const CAMPOS = {
     estado: [],
-    assinar: ['tipo', 'mensagem', 'resumos', 'algoritmo', 'novo'],
+    assinar: ['tipo', 'mensagem', 'resumos', 'algoritmo'],
     registrarTarefa: ['tarefa'],
   };
   const filtrar = (acao, pedido) => {
     const out = {};
     if (!pedido || typeof pedido !== 'object') return out;
     for (const k of CAMPOS[acao]) if (pedido[k] !== undefined) out[k] = pedido[k];
+    // Todo lote vindo da página abre janela nova, com a quantidade; a página
+    // não escolhe. Só a repetição da ponte, depois dela, vai sem (repetir).
+    if (acao === 'assinar' && out.tipo === 'documentos') out.novo = true;
     return out;
   };
 
@@ -76,6 +79,10 @@
     let msg;
     try { msg = JSON.parse(ev.detail); } catch { return; }
     if (!msg || typeof msg !== 'object' || typeof msg.id !== 'string') return;
+    // Confirmação na hora (dispatchEvent é síncrono): sem ela, a página sabe
+    // que o mundo isolado não está aqui (extensão desativada, por exemplo) e
+    // deixa a chamada seguir.
+    document.dispatchEvent(new CustomEvent('jamegao-pje-recebido', { detail: JSON.stringify({ id: msg.id }) }));
     atender(msg.acao, msg.pedido)
       .catch((e) => failure('Jamegão: ' + String((e && e.message) || e)))
       .then((resposta) => {

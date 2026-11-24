@@ -45,8 +45,10 @@ window.requisicao = (tarefaId, tarefa, { servidor = location.origin + '/pje', ob
 // Abre `url` numa aba nova, com a página imitada servida para a origem de
 // `url`. Os POST são anotados em `envios` e respondidos por `rotas` (recebe o
 // envio e devolve a resposta; sem resposta, 404). As chamadas a :8800 são
-// anotadas em `localhost` e abortadas; o resto é abortado. Com
-// `jamegao: false`, confere que os scripts do PJe não estão na página.
+// anotadas em `localhost` e abortadas; as que não são POST, para outras
+// origens, são anotadas em `outros` e abortadas. As mensagens do console da
+// página ficam em `consoleDaPagina`. Com `jamegao: false`, confere que os
+// scripts do PJe não estão na página.
 // O BiDi do Firefox não dá o corpo de forma síncrona.
 const lerCorpo = async (req) => {
   try { return req.postData(); } catch { return req.fetchPostData(); }
@@ -56,10 +58,15 @@ export async function abrirPje(h, url, { prototype = false, rotas = () => undefi
   const page = await h.browser.newPage();
   const localhost = [];
   const envios = [];
+  const outros = [];
+  const consoleDaPagina = [];
   const origem = new URL(url).origin;
+  page.on('console', (m) => consoleDaPagina.push(m.text()));
   await page.setRequestInterception(true);
   page.on('request', async (req) => {
     const u = req.url();
+    // As respostas 1×1 e 2×1 do Jamegão (data:) não saem do navegador.
+    if (u.startsWith('data:')) return req.continue();
     if (u.includes(':8800')) { localhost.push(u); return req.abort(); }
     if (req.method() === 'POST') {
       const envio = { url: u, headers: req.headers(), corpo: (await lerCorpo(req)) ?? '' };
@@ -68,11 +75,12 @@ export async function abrirPje(h, url, { prototype = false, rotas = () => undefi
       if (r) return req.respond(r);
       return req.respond({ status: 404, body: '' });
     }
-    if (u.startsWith(origem)) return req.respond({ status: 200, contentType: 'text/html; charset=utf-8', body: paginaPje({ prototype }) });
+    if (u.startsWith(origem + '/')) return req.respond({ status: 200, contentType: 'text/html; charset=utf-8', body: paginaPje({ prototype }) });
+    outros.push(u);
     return req.abort();
   });
   await page.goto(url);
   if (jamegao) assert.equal(await page.evaluate(() => window.__jamegaoPje), true, 'os scripts do PJe não estão na página');
   else assert.equal(await page.evaluate(() => window.__jamegaoPje), undefined, 'os scripts do PJe não deveriam estar na página');
-  return { page, localhost, envios };
+  return { page, localhost, envios, outros, consoleDaPagina };
 }

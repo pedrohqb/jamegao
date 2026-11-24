@@ -20,7 +20,8 @@ const PAGINA = 'jamegao-pje-pagina';
 const CONTEUDO = 'jamegao-pje-conteudo';
 const IDS = [PAGINA, CONTEUDO];
 
-const registradosDe = async (api) => (await api.scripting.getRegisteredContentScripts({ ids: IDS })).map((s) => s.id);
+const registrosDe = (api) => api.scripting.getRegisteredContentScripts({ ids: IDS });
+const registradosDe = async (api) => (await registrosDe(api)).map((s) => s.id);
 const escolhido = async (kv) => (await kv.get(CHAVE, false)) === true;
 
 const scripts = (api) => {
@@ -35,6 +36,24 @@ const scripts = (api) => {
     { id: PAGINA, world: 'MAIN', js: ['/protocolos/pje/pagina.js'], ...comum },
     { id: CONTEUDO, js: ['/conteudo/ponte.js', '/protocolos/pje/conteudo.js'], ...comum },
   ];
+};
+
+// O que importa de um registro, na forma em que o navegador o devolve
+// (caminhos sem a barra inicial, mundo isolado explícito, listas de sites em
+// qualquer ordem).
+const essencial = (s) => JSON.stringify({
+  js: (s.js ?? []).map((j) => String(j).replace(/^\//, '')),
+  matches: [...(s.matches ?? [])].sort(),
+  excludeMatches: [...(s.excludeMatches ?? [])].sort(),
+  world: s.world ?? 'ISOLATED',
+  allFrames: s.allFrames === true,
+});
+
+// Os dois scripts registrados como esta versão os registraria. Um registro
+// deixado por versão anterior (outros caminhos ou sites) não conta.
+const registroCerto = async (api) => {
+  const atuais = new Map((await registrosDe(api)).map((s) => [s.id, essencial(s)]));
+  return scripts(api).every((s) => atuais.get(s.id) === essencial(s));
 };
 
 // Tira o que houver registrado. Outro contexto (o fundo que acaba de acordar,
@@ -56,17 +75,18 @@ export async function ligado(api, kv = idbKv()) {
   return (await registradosDe(api)).length === IDS.length;
 }
 
-// Registra os dois scripts. Já registrados os dois, não faz nada (o popup e o
-// fundo podem ligar ao mesmo tempo, pelo clique e por permissions.onAdded).
-// Se outro contexto registrou no meio do caminho ("Duplicate script ID"), o
-// registro dele vale.
+// Registra os dois scripts. Já registrados como deviam, não faz nada (o popup
+// e o fundo podem ligar ao mesmo tempo, pelo clique e por
+// permissions.onAdded); registro antigo ou pela metade é trocado. Se outro
+// contexto registrou no meio do caminho ("Duplicate script ID"), o registro
+// dele vale.
 export async function registrar(api) {
-  if ((await registradosDe(api)).length === IDS.length) return;
+  if (await registroCerto(api)) return;
   await tirarRegistro(api);
   try {
     await api.scripting.registerContentScripts(scripts(api));
   } catch (err) {
-    if ((await registradosDe(api)).length !== IDS.length) throw err;
+    if (!(await registroCerto(api))) throw err;
   }
 }
 
@@ -124,18 +144,18 @@ export async function retirar(api, kv = idbKv()) {
 }
 
 // Na inicialização do fundo:
-//   - escolhido e com a permissão: registra o que faltar;
+//   - escolhido e com a permissão: registra o que faltar ou troca o registro
+//     deixado por versão anterior;
 //   - escolhido, mas a permissão sumiu (o usuário a tirou no navegador):
 //     desfaz a escolha e retira os scripts;
 //   - não escolhido: retira os scripts que houver, sem mexer na permissão.
 export async function acertar(api, kv = idbKv()) {
   const quer = await escolhido(kv);
   const concedida = await api.permissions.contains(PERMISSAO);
-  const n = (await registradosDe(api)).length;
   if (quer && concedida) {
-    if (n < IDS.length) await registrar(api);
+    await registrar(api);
     return;
   }
   if (quer) await kv.set(CHAVE, false);
-  if (n > 0) await tirarRegistro(api);
+  await tirarRegistro(api);
 }

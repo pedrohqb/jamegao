@@ -5,6 +5,7 @@ import http from 'node:http';
 import path from 'node:path';
 import { launch, FIX } from './harness.mjs';
 import { criarAjudas } from './ajudas.mjs';
+import { ligarPje, abrirPje } from './ajudas-pje.mjs';
 
 // Servidor próprio que registra todo pedido recebido (o do harness não loga).
 let h;
@@ -66,7 +67,9 @@ const tentativas = `async (bases, tag, comBeacon) => {
 
 const paginas = ['pages/import.html', 'pages/confirm.html', 'pages/popup.html'];
 
-test('fundo e páginas não conseguem abrir conexão', async () => {
+// O fundo e as páginas da extensão tentam todas as formas de conexão, e
+// nenhuma passa.
+async function semRede(h) {
   const bases = [spy, spy2].map((s) => `http://127.0.0.1:${s.address().port}`);
   const resultados = {};
 
@@ -145,4 +148,68 @@ test('fundo e páginas não conseguem abrir conexão', async () => {
     }
   }
   assert.deepEqual(hits, [], 'um espião recebeu pedidos: ' + hits.join(', '));
+}
+
+test('fundo e páginas não conseguem abrir conexão', () => semRede(h));
+
+// Espião na porta do assinador local, se estiver livre: nada do navegador
+// pode chegar a ela num login que o Jamegão atende.
+const espiaoNa8800 = () => new Promise((resolve) => {
+  const srv = http.createServer((req, res) => {
+    hits.push(`8800${req.url}`);
+    res.writeHead(200, { 'access-control-allow-origin': '*' }).end('x');
+  });
+  srv.once('error', () => resolve(null));
+  srv.listen(8800, '127.0.0.1', () => resolve(srv));
+});
+
+test('com o PJe ligado: fundo e páginas continuam sem rede, e o login atendido não chama :8800', async () => {
+  // O primeiro navegador já serviu; fechá-lo antes evita que o fechamento
+  // deste apague a pasta da extensão dele.
+  await h.close();
+  h = null;
+  const hp = await launch(process.env.BROWSER || 'chrome', { pje: true });
+  const s8800 = await espiaoNa8800();
+  try {
+    await ligarPje(hp);
+    await semRede(hp);
+
+    if (s8800) {
+      // Controle: a porta recebe o que uma página comum manda a ela.
+      const comum = await hp.browser.newPage();
+      await comum.goto(`${hp.origin}/`);
+      await comum.evaluate(() => fetch('http://127.0.0.1:8800/controle', { mode: 'no-cors' }).catch(() => {}));
+      await comum.close();
+      for (const fim = Date.now() + 3000; Date.now() < fim && !hits.length;) await new Promise((r) => setTimeout(r, 50));
+      assert.deepEqual(hits, ['8800/controle']);
+      hits.length = 0;
+    } else {
+      console.log('# porta 8800 ocupada: o login é conferido só pela interceptação da página');
+    }
+
+    const cofre = 'cofre-forte-1';
+    await hp.importPfx(path.join(FIX, 'pf-moderno.pfx'), 'senha123', cofre);
+    const a = criarAjudas(hp);
+    const sso = 'https://sso.cloud.pje.jus.br';
+    const { page, localhost, envios } = await abrirPje(hp, sso + '/auth/realms/pje/x', { rotas: () => ({ status: 204, body: '' }) });
+    try {
+      const resultado = page.evaluate(async () => ({
+        ping: await window.chamar(window.ping()),
+        res: await window.chamar(window.requisicao('sso.autenticador',
+          { enviarPara: '/pjeoffice-rest', mensagem: 'Bem-vindo', token: 'tok-1' },
+          { servidor: location.origin + '/auth/realms/pje' })),
+      }));
+      await a.responder(await a.janela(sso), '#confirmar', cofre);
+      assert.deepEqual(await resultado, { ping: 'ok', res: 'ok' });
+      await new Promise((r) => setTimeout(r, 500));
+      assert.deepEqual(localhost, [], 'a página chamou :8800');
+      assert.deepEqual(envios.map((e) => e.url), [sso + '/auth/realms/pje/pjeoffice-rest']);
+      assert.deepEqual(hits, [], 'um espião recebeu pedidos: ' + hits.join(', '));
+    } finally {
+      await page.close().catch(() => {});
+    }
+  } finally {
+    if (s8800) s8800.close();
+    await hp.close();
+  }
 });
