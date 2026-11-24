@@ -172,7 +172,9 @@ de propósito os documentos de extensão (bug 1755014 da Mozilla): não emite
 fecha e recusa `input.*` e `evaluateOnNewDocument` nelas. O harness contorna
 isso só no Firefox (`apoiarPaginasDaExtensao`): espera o documento por
 `evaluate`, lê o URL real por um relógio, dá a janela por fechada quando o
-contexto some, e faz `click`, `reload` e `uploadFile` dentro da página. Quando
+contexto some (duas falhas seguidas), e faz `click`, `reload` e `uploadFile` dentro
+da página. Atenção: o clique é `el.click()`, sem evento de ponteiro real nem
+ativação do usuário. Quando
 a Mozilla corrigir o bug, o apoio pode sair.
 
 Um arquivo só, por exemplo para repetir o de convivência:

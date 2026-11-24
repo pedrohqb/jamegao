@@ -67,8 +67,9 @@ async function apoiarPaginasDaExtensao(browser) {
   const comTempo = (p, ms) => Promise.race([p, new Promise((r) => setTimeout(() => r(undefined), ms))]);
   // undefined = sem resposta a tempo; null = o contexto não existe mais.
   const lerUrl = (page) => comTempo(page.evaluate(() => location.href).catch((e) => (
-    /no such frame|not found|detached|closed|destroyed/i.test(e.message) ? null : undefined
+    /no such frame/i.test(e.message) ? null : undefined
   )), 1500);
+  const urlOriginalDe = (page) => (page.__urlPuppeteer ? page.__urlPuppeteer() : page.url());
   const morrer = (page) => {
     if (page.__morta) return;
     page.__morta = true;
@@ -78,6 +79,7 @@ async function apoiarPaginasDaExtensao(browser) {
     if (page.__apoioExt) return;
     page.__apoioExt = true;
     const urlOriginal = page.url.bind(page);
+    page.__urlPuppeteer = urlOriginal;
     const gotoOriginal = page.goto.bind(page);
     page.url = () => page.__urlReal ?? urlOriginal();
     // O BiDi também não avisa que uma janela de extensão fechou: quem fecha é
@@ -147,6 +149,7 @@ async function apoiarPaginasDaExtensao(browser) {
         await new Promise((r) => setTimeout(r, 50));
       }
       page.__urlReal = url;
+      page.__foiExt = true;
       return null;
     };
   };
@@ -156,13 +159,34 @@ async function apoiarPaginasDaExtensao(browser) {
     await Promise.all(paginas.map(async (page) => {
       marcar(page);
       if (page.isClosed()) return;
+      // Só interessam as páginas que são, ou foram, de extensão (o BiDi as
+      // mostra como about:blank); as demais têm o URL certo no puppeteer.
+      if (!page.__foiExt && urlOriginalDe(page) !== 'about:blank') return;
       const u = await lerUrl(page);
-      if (u === null) morrer(page);
-      else if (u && u !== 'about:blank') page.__urlReal = u;
+      if (u === null) {
+        // Uma falha isolada pode ser troca de documento: só duas seguidas matam.
+        page.__falhas = (page.__falhas ?? 0) + 1;
+        if (page.__falhas >= 2) morrer(page);
+        return;
+      }
+      page.__falhas = 0;
+      if (typeof u !== 'string') return;
+      if (u.startsWith('moz-extension://')) {
+        page.__foiExt = true;
+        page.__urlReal = u;
+      } else {
+        page.__urlReal = undefined;
+      }
     }));
   };
-  const relogio = setInterval(varrer, 100);
-  browser.on('disconnected', () => clearInterval(relogio));
+  let parado = false;
+  const ciclo = async () => {
+    if (parado) return;
+    await varrer().catch(() => {});
+    if (!parado) setTimeout(ciclo, 100);
+  };
+  setTimeout(ciclo, 100);
+  browser.on('disconnected', () => { parado = true; });
   browser.pages = async () => (await pagesOriginal()).filter((p) => { marcar(p); return !p.__morta; });
   const newPageOriginal = browser.newPage.bind(browser);
   browser.newPage = async (...a) => { const page = await newPageOriginal(...a); marcar(page); return page; };
