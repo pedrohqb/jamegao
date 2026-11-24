@@ -84,6 +84,17 @@ Firefox no ambiente de desenvolvimento). Para rodar:
 - Firefox mínimo 140 e Android mínimo 142 (exigidos pelo
   `data_collection_permissions`), o que cala os dois alertas da validação.
 
+## Próxima versão (quando houver motivo para atualizar)
+
+- Listar na Mozilla: enviar como "Neste site", **sem** `update_url` no
+  manifesto (a Mozilla não aceita versão listada com endereço próprio de
+  atualização). Acrescentar no `updates.json` a entrada da versão nova,
+  apontando para o `.xpi` na release do GitHub: quem tem a 0.1.1 chega a
+  ela por ali, e daí em diante (e quem ficou na 0.1.0) é atualizado pela
+  própria Mozilla. Ficha com os textos e capturas de `docs/lojas/`.
+- 0.1.1: aprovada na Mozilla (por conta própria) e enviada à Chrome Web Store
+  em 24/11/2026; release `v0.1.1` no GitHub a criar por Pedro.
+
 ## Envio às lojas (22/11/2026)
 
 - Chrome Web Store: enviada para análise e publicada no mesmo dia, cerca de
