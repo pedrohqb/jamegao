@@ -82,11 +82,11 @@ no Firefox.
    "(bloqueado)"; novas tentativas falham sem abrir janela. Para desfazer,
    clique em "Desbloquear" no ícone e faça o login de novo.
 
-7. **Convivência com a oficial (só se você tiver a oficial instalada).**
-   Ligue a oficial e o Jamegão juntos. No ícone do Jamegão, no site do
-   e-SAJ, marque "Deixar a extensão oficial responder". Recarregue a página
-   e faça o login. Esperado: quem responde é a oficial, e nenhuma janela do
-   Jamegão abre. Desmarque o interruptor para voltar.
+7. **Com a oficial ativa (só se você tiver a oficial instalada).** Ligue a
+   oficial com o Jamegão, recarregue a página e faça o login. Esperado: quem
+   responde é a oficial, nenhuma janela do Jamegão abre, nenhum erro
+   CERT-99, e o ícone do Jamegão avisa que ele se desligou no site.
+   Desative a oficial, recarregue, e o Jamegão volta a responder.
 
 8. **Outros tribunais.** Faça o login por certificado no TJAL
    (`www2.tjal.jus.br`). Se tiver cadastro, repita no TJMS, TJAC, TJCE ou

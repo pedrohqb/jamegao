@@ -7,15 +7,15 @@ ponta no Chrome 39/39.
 
 - Primeira petição real assinada e protocolada com a 0.1.0: e-SAJ do TJSP,
   Firefox, Linux (Bluefin), 23/11/2026.
-
+- 0.1.1 (24/11/2026), em perfis de teste do Brave e do Firefox: sem as
+  oficiais, o login funciona com a janela do Jamegão; com Web PKI e
+  WebSigner ativos, o Jamegão se desliga e a oficial responde, sem CERT-99.
 - Login no e-SAJ do TJSP com a v0.1 no Brave e no Firefox (extensão
   temporária). Sem extensão oficial, sem componente nativo.
 - Login no e-SAJ do TJSP no OpenBSD (22/11/2026).
 - Protótipo anterior: login e assinatura no TJSP e no TJAL, Chromium e Firefox.
 
-Falta testar com a v0.1: assinatura de petição real (no Firefox o e-SAJ pode
-assinar pela outra marca, que o login não exercita) e os tribunais além do
-TJSP.
+Falta testar: petição real no Chromium e os tribunais além do TJSP.
 
 ## Corrigido depois da revisão final (21/11, noite)
 
@@ -69,33 +69,20 @@ Firefox no ambiente de desenvolvimento). Para rodar:
 
     BROWSER=firefox FIREFOX_BIN=/caminho/do/firefox npm run e2e
 
-## Versão 0.1.1, pronta no ramo `v0.1.1`, aguardando o primeiro protocolo
+## Versão 0.1.1 (23/11/2026, liberada em 24/11)
 
-Em 23/11/2026, com as extensões oficiais ativas (Chromium e Firefox, para um
-certificado SerproID), o login no e-SAJ falhou com CERT-99: as duas
-respondem ao mesmo pedido, e a oficial responde na hora "certificado não
-encontrado" para o A1 do Jamegão. Decisão de Pedro: havendo a oficial, o
-Jamegão não roda. A 0.1.1 faz isso, traz a atualização automática no
-Firefox e sobe o mínimo para 140; só vai às lojas depois do primeiro
-protocolo de petição com a 0.1.0. Até lá, a saída é desativar as oficiais ou
-usar o interruptor "Deixar a extensão oficial responder".
-
-## Itens da 0.1.1 (já feitos no ramo `v0.1.1`)
-
-- Atualização automática no Firefox: o `.xpi` distribuído por arquivo só se
-  atualiza sozinho se o manifesto tiver `browser_specific_settings.gecko.update_url`
-  apontando para um arquivo de atualizações (por exemplo, `updates.json`
-  servido pelo GitHub Pages ou pelo próprio repositório, com o link do `.xpi`
-  de cada versão). Precisa estar já na 0.1.1: quem instalar a 0.1.0 terá de
-  atualizar à mão uma vez.
-
-- Validação da Mozilla (22/11): passou, com 4 alertas sem efeito. Para
-  silenciar dois deles, subir `strict_min_version` de 128 para 140 (Firefox)
-  e declarar `gecko_android` mínimo 142, ou excluir o Android: o
-  `data_collection_permissions` só existe a partir dessas versões. Os
-  outros dois são esperados: `background.service_worker` ignorado pelo
-  Firefox (ele usa `background.scripts`) e o construtor `Function` dentro
-  do node-forge.
+- Com extensão oficial na página, o Jamegão se desliga (decisão de Pedro,
+  depois do erro CERT-99 com Web PKI e WebSigner ativos nos dois
+  navegadores). O interruptor "deixar a extensão oficial responder" saiu.
+  Testado na suíte com a oficial imitada (elemento de detecção e resposta
+  alheia, no Chrome) e por Pedro com as oficiais de verdade, no Brave e no
+  Firefox (24/11).
+- Atualização automática no Firefox: `update_url` aponta para `updates.json`
+  na raiz do repositório, servido pelo GitHub, que aponta para o `.xpi` da
+  release. A cada versão: acrescentar a entrada no `updates.json` e publicar
+  o `.xpi` assinado na release com o nome `jamegao-<versão>-firefox.xpi`.
+- Firefox mínimo 140 e Android mínimo 142 (exigidos pelo
+  `data_collection_permissions`), o que cala os dois alertas da validação.
 
 ## Envio às lojas (22/11/2026)
 
