@@ -1,5 +1,5 @@
 // Certificados importados, no IndexedDB da extensão (lib/db.js).
-// Entrada: {thumbprint, model, certB64, key: {iv, data}, importedAt}; a chave
+// Entrada: {thumbprint, model, certB64, chainB64 (titular primeiro), key: {iv, data}, importedAt}; a chave
 // privada só existe cifrada (nunca CryptoKey nem PKCS#8 em claro).
 import { STORES, run } from './db.js';
 

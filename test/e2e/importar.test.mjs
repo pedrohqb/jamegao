@@ -75,6 +75,14 @@ test('primeira importação cria o cofre', async () => {
     const r = await importar(page, { arquivo: fx('pf-moderno.pfx'), cofre: 'cofre-forte-1', cofre2: 'cofre-forte-1' });
     assert.equal(r.cls, 'ok', r.texto);
     assert.equal(await itens(page), 1);
+    // O registro guarda a cadeia, com o titular na frente.
+    const reg = await page.evaluate(async () => {
+      const { createCerts } = await import('/lib/certs.js');
+      const [c] = await createCerts().list();
+      return { certB64: c.certB64, chainB64: c.chainB64 };
+    });
+    assert.ok(Array.isArray(reg.chainB64) && reg.chainB64.length >= 1);
+    assert.equal(reg.chainB64[0], reg.certB64);
     assert.equal(await page.$eval('#senha-cofre-2', (el) => el.hidden), true);
     // Nada do cofre em storage.local, que os scripts de conteúdo alcançam.
     assert.deepEqual(await page.evaluate(() => chrome.storage.local.get(null)), {});

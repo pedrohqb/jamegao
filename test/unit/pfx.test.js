@@ -134,3 +134,62 @@ test('dados do titular 2.16.76.1.3.1 isolado não traz CNPJ', () => {
   assert.equal(m.pkiBrazil.rgEmissor, 'SSP');
   assert.equal(m.pkiBrazil.rgEmissorUF, null);
 });
+
+// Cadeia do certificado (o PJe pede a cadeia inteira).
+const cn = (der) => new crypto.X509Certificate(Buffer.from(der)).subject;
+function pfxDeCadeia({ incluir }) {
+  const pki = forge.pki;
+  const mk = (subj, issuer, keys, signKey, ca) => {
+    const c = pki.createCertificate();
+    c.publicKey = keys.publicKey;
+    c.serialNumber = String(Math.floor(Math.random() * 1e9) + 1);
+    c.validity.notBefore = new Date(Date.now() - 864e5);
+    c.validity.notAfter = new Date(Date.now() + 864e5);
+    c.setSubject([{ name: 'commonName', value: subj }]);
+    c.setIssuer([{ name: 'commonName', value: issuer }]);
+    c.setExtensions([{ name: 'basicConstraints', cA: ca }]);
+    c.sign(signKey, forge.md.sha256.create());
+    return c;
+  };
+  const kRaiz = pki.rsa.generateKeyPair(1024);
+  const kInter = pki.rsa.generateKeyPair(1024);
+  const kTit = pki.rsa.generateKeyPair(1024);
+  const kAlheio = pki.rsa.generateKeyPair(1024);
+  const raiz = mk('AC Raiz', 'AC Raiz', kRaiz, kRaiz.privateKey, true);
+  const inter = mk('AC Intermediaria', 'AC Raiz', kInter, kRaiz.privateKey, true);
+  const tit = mk('Titular', 'AC Intermediaria', kTit, kInter.privateKey, false);
+  const alheio = mk('AC Alheia', 'AC Alheia', kAlheio, kAlheio.privateKey, true);
+  const certs = { raiz, inter, tit, alheio };
+  const p12 = forge.pkcs12.toPkcs12Asn1(kTit.privateKey, incluir.map((n) => certs[n]), 'x', { algorithm: '3des' });
+  return Uint8Array.from(forge.asn1.toDer(p12).getBytes(), (c) => c.charCodeAt(0));
+}
+
+test('cadeia: raiz, intermediária e titular, na ordem titular para raiz', () => {
+  const r = parsePfx(forge, pfxDeCadeia({ incluir: ['raiz', 'tit', 'inter'] }), 'x');
+  assert.deepEqual(r.chainDer.map(cn), ['CN=Titular', 'CN=AC Intermediaria', 'CN=AC Raiz']);
+  assert.deepEqual(r.chainDer[0], r.certDer);
+});
+
+test('cadeia: só o titular devolve [titular]', () => {
+  const r = parsePfx(forge, pfxDeCadeia({ incluir: ['tit'] }), 'x');
+  assert.equal(r.chainDer.length, 1);
+  assert.deepEqual(r.chainDer[0], r.certDer);
+});
+
+test('cadeia: certificado alheio que não é emissor fica de fora', () => {
+  const r = parsePfx(forge, pfxDeCadeia({ incluir: ['alheio', 'tit', 'inter', 'raiz'] }), 'x');
+  assert.deepEqual(r.chainDer.map(cn), ['CN=Titular', 'CN=AC Intermediaria', 'CN=AC Raiz']);
+});
+
+test('cadeia: falta a intermediária, para no titular', () => {
+  const r = parsePfx(forge, pfxDeCadeia({ incluir: ['tit', 'raiz'] }), 'x');
+  assert.deepEqual(r.chainDer.map(cn), ['CN=Titular']);
+});
+
+test('cadeia: fixtures atuais começam pelo titular', () => {
+  for (const [f, s] of [['pf-moderno.pfx', 'senha123'], ['pf-3des.pfx', 'senha123'], ['pj-legado.pfx', 'outra senha']]) {
+    const r = parsePfx(forge, fix(f), s);
+    assert.ok(r.chainDer.length >= 1 && r.chainDer.length <= 10, f);
+    assert.deepEqual(r.chainDer[0], r.certDer, f);
+  }
+});

@@ -65,7 +65,9 @@ async function importar() {
     const thumbprint = await thumbprintOf(parsed.certDer);
     const model = buildModel(forge, parsed.cert, thumbprint);
     const key = await vault.encrypt(pkcs8);
-    await certs.put({ thumbprint, model, certB64: bytesToB64(parsed.certDer), key, importedAt: Date.now() });
+    await certs.put({
+      thumbprint, model, certB64: bytesToB64(parsed.certDer), chainB64: parsed.chainDer.map(bytesToB64), key, importedAt: Date.now(),
+    });
     $('arquivo').value = '';
     status('ok', `Certificado de ${model.subjectName} importado.`);
   } catch (err) {

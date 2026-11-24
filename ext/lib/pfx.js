@@ -55,9 +55,23 @@ export function parsePfx(forge, bytes, password) {
   if (!certBag) throw new Error(E.semCert);
   const cert = certBag.cert;
 
-  const certDer = binToBytes(forge.asn1.toDer(forge.pki.certificateToAsn1(cert)).getBytes());
+  const toDer = (c) => binToBytes(forge.asn1.toDer(forge.pki.certificateToAsn1(c)).getBytes());
+  const certDer = toDer(cert);
+
+  // Cadeia do titular para a raiz, com as autoridades que vierem no arquivo
+  // (o PJe pede a cadeia inteira). Para na raiz ou quando falta o emissor.
+  const others = certBags.map((bag) => bag.cert).filter((c) => c && c !== cert);
+  const chain = [cert];
+  for (let atual = cert; chain.length < 10;) {
+    if (atual.isIssuer(atual)) break; // autoassinado: raiz
+    const emissor = others.find((c) => !chain.includes(c) && atual.isIssuer(c));
+    if (!emissor) break;
+    chain.push(emissor);
+    atual = emissor;
+  }
+  const chainDer = chain.map(toDer);
   const pkcs8 = binToBytes(
     forge.asn1.toDer(forge.pki.wrapRsaPrivateKey(forge.pki.privateKeyToAsn1(key))).getBytes(),
   );
-  return { pkcs8, certDer, cert };
+  return { pkcs8, certDer, cert, chainDer };
 }
