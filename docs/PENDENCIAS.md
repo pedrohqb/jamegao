@@ -63,6 +63,8 @@ usuário); só o teste manual prova.
   apareceu minutos antes no mesmo processo com o programa instalado do PJe
   (16:49), assinando outro advogado do escritório: é do servidor do TJDFT,
   não do Jamegão.
+  e-SAJ do TJSP com a 0.3.0: login confirmado no Firefox e no Brave
+  (25/11/2026).
   O TJMA foi testado só na spike (`pje-spike`, 24/11/2026, Brave). Os textos
   públicos já dizem isso.
 - Enviar às duas lojas: zip `dist/jamegao-0.3.0.zip`, notas da versão e notas
