@@ -84,7 +84,7 @@ async function atenderPedido(msg, sender) {
   const url = api.runtime.getURL('pages/confirm.html') + '?id=' + encodeURIComponent(opened.id);
   try {
     if (typeof api.windows?.create === 'function') {
-      const win = await api.windows.create({ url, type: 'popup', width: 440, height: 520 });
+      const win = await api.windows.create({ url, type: 'popup', width: 440, height: 620 });
       await m.prompts.setWindow(opened.id, win.id);
     } else {
       // Firefox do Android: não há janelas; a confirmação abre numa aba.

@@ -414,9 +414,35 @@ test('recusa do usuário não vai ao console; outras falhas vão, com [Jamegão]
   assert.ok(consoleDaPagina.some((t) => t.includes('[Jamegão]')), 'a falha deveria ir ao console: ' + consoleDaPagina.join(' | '));
 });
 
+// Janela de confirmação no caso mais cheio do PJe (site novo, cofre travado,
+// seletor e "Usar o programa instalado"). Com titular de nome longo, o
+// conteúdo pode passar da janela (440×620; o Chrome sem cabeça ignora o
+// tamanho e abre 800×600): a página rola, e todos os controles são
+// alcançáveis mesmo com o conteúdo muito maior que a janela.
+async function conferirAlcance(j) {
+  const alcancaveis = await j.$eval('body', (b) => {
+    const folga = document.createElement('div');
+    folga.style.height = '3000px';
+    b.prepend(folga);
+    try {
+      return [...b.querySelectorAll('button, select, input')].filter((x) => x.offsetParent !== null).map((x) => {
+        x.scrollIntoView({ block: 'nearest' });
+        const r = x.getBoundingClientRect();
+        return { id: x.id, visivel: r.top >= -1 && r.bottom <= innerHeight + 1 };
+      });
+    } finally {
+      folga.remove();
+      scrollTo(0, 0);
+    }
+  });
+  assert.deepEqual(alcancaveis.map((x) => x.id), ['certificado', 'senha', 'confirmar', 'recusar', 'bloquear', 'programa']);
+  for (const x of alcancaveis) assert.ok(x.visivel, `${x.id} não alcançável rolando a janela`);
+}
+
 // Daqui em diante há dois certificados com cadeia.
 test('dois certificados: a janela mostra o seletor, marca o último usado e assina com o escolhido', async () => {
   await h.importPfx(path.join(FIX, 'pj-legado.pfx'), 'outra senha', COFRE);
+  await a.limparSessao(); // a importação abre o cofre; a primeira janela pede a senha
   const pjCert = new crypto.X509Certificate(fs.readFileSync(path.join(FIX, 'pj.crt')));
   const { page, localhost, envios } = await abrir(SSO + '/auth/realms/pje/x', { rotas: rotasSso });
   const opcoesDe = (j) => j.$eval('#certificado', (s) => [...s.options].map((o) => ({ valor: o.value, texto: o.textContent, marcado: o.selected })));
@@ -426,6 +452,7 @@ test('dois certificados: a janela mostra o seletor, marca o último usado e assi
   let j = await a.janela(SSO);
   assert.equal(await j.$eval('#bloco-certificado', (b) => b.hidden), false);
   assert.equal(await j.$eval('label[for="certificado"]', (l) => l.textContent), 'Certificado');
+  await conferirAlcance(j);
   let opcoes = await opcoesDe(j);
   assert.equal(opcoes.length, 2);
   const pj = opcoes.find((o) => o.texto.includes('EMPRESA: TESTE LTDA'));
