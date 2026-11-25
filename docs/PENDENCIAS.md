@@ -59,9 +59,10 @@ usuário); só o teste manual prova.
   PJe do TJDFT, no Firefox, com A1 real, num processo real. A primeira
   tentativa de assinar foi recusada pelo TJDFT com
   `pje.certificadoDigitalService.error.verificaAssinatura.validarCertificado`;
-  a segunda, logo em seguida e sem mudança nenhuma, foi aceita (provável falha
-  passageira da validação do certificado no servidor). Se repetir, colher as
-  linhas `[Jamegão]` do console e a resposta de `arquivoAssinadoUpload.seam`.
+  a segunda, logo em seguida e sem mudança nenhuma, foi aceita. O mesmo erro
+  apareceu minutos antes no mesmo processo com o programa instalado do PJe
+  (16:49), assinando outro advogado do escritório: é do servidor do TJDFT,
+  não do Jamegão.
   O TJMA foi testado só na spike (`pje-spike`, 24/11/2026, Brave). Os textos
   públicos já dizem isso.
 - Enviar às duas lojas: zip `dist/jamegao-0.3.0.zip`, notas da versão e notas
