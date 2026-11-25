@@ -143,6 +143,9 @@ test('com a permissão, mas sem a escolha do usuário, o PJe vem desligado', asy
   assert.deepEqual(await registrados(), []);
   const popup = await abrirPopup();
   assert.equal(await marcado(popup), false);
+  // Só no Chromium o pedido de permissão diz "qualquer site"; o popup explica.
+  const notaVisivel = await popup.$eval('#pje-chromium', (el) => !el.hidden);
+  assert.equal(notaVisivel, browserName === 'chrome');
   await tjmaNaoAtendido();
 });
 

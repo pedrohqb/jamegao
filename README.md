@@ -135,7 +135,7 @@ Desde a versão 0.3.0, o Jamegão também entra e assina no PJe, no lugar do pro
 #### 1. Ligar (uma vez)
 
 1. No ícone do Jamegão, marque **Usar também no PJe**. O mesmo botão aparece no fim da importação do certificado.
-2. O navegador pede permissão para acessar os sites `https://*.jus.br/*`. Aceite. É só desta vez.
+2. O navegador pede permissão para acessar os sites `https://*.jus.br/*`. Aceite. É só desta vez. No Chrome e no Brave, o pedido diz que o Jamegão poderá "ler e mudar seus dados em qualquer site": é o jeito de o Chrome descrever `*.jus.br`, porque trata `jus.br` como sufixo de domínio, igual a `com.br`. O acesso concedido é só aos sites da Justiça; o Firefox mostra "sites no domínio jus.br".
 3. Recarregue as páginas do PJe que estiverem abertas: só as carregadas depois de ligar têm o Jamegão.
 
 No Firefox, o pedido de permissão às vezes aparece atrás da janela do ícone. Feche a janela do ícone e aceite o pedido: o PJe fica ligado do mesmo jeito. Para desligar, desmarque a caixa.

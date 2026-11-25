@@ -7,7 +7,11 @@ import { browserKv } from '../lib/kv.js';
 import { bytesToB64 } from '../lib/bytes.js';
 import { ligado, ligarNoGesto } from '../protocolos/pje/registro.js';
 
+// No Chromium, *.jus.br aparece no pedido de permissão como "qualquer site".
+
 const api = globalThis.browser ?? globalThis.chrome;
+// O Chrome recente também expõe `browser`; só o Firefox tem getBrowserInfo.
+const CHROMIUM = typeof api.runtime.getBrowserInfo !== 'function';
 const $ = (id) => document.getElementById(id);
 const kv = browserKv();
 const vault = createVault({ local: kv.local, session: kv.session, now: () => Date.now() });
@@ -72,7 +76,10 @@ async function importar() {
     });
     $('arquivo').value = '';
     status('ok', `Certificado de ${model.subjectName} importado.`);
-    if (!(await ligado(api).catch(() => true))) $('pje-ligar').hidden = false;
+    if (!(await ligado(api).catch(() => true))) {
+      $('pje-ligar').hidden = false;
+      $('pje-chromium').hidden = !CHROMIUM;
+    }
   } catch (err) {
     status('erro', err && err.message === 'senha-curta' ? 'A senha do cofre precisa ter pelo menos 8 caracteres.' : (err && err.message) || 'Falha ao importar o certificado.');
   } finally {
@@ -99,6 +106,7 @@ $('pje-ligar').addEventListener('click', () => {
   ligarNoGesto(api)
     .then((ligou) => {
       $('pje-ligar').hidden = ligou;
+      if (ligou) $('pje-chromium').hidden = true;
       $('pje-aviso').hidden = !ligou;
     }, () => status('erro', 'Não foi possível concluir a ação.'))
     .finally(() => { $('pje-ligar').disabled = false; });

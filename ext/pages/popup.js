@@ -9,7 +9,10 @@ import { browserKv } from '../lib/kv.js';
 import { avisoValidade } from '../lib/validade.js';
 import { ligado, ligarNoGesto, retirar } from '../protocolos/pje/registro.js';
 
+
 const api = globalThis.browser ?? globalThis.chrome;
+// O Chrome recente também expõe `browser`; só o Firefox tem getBrowserInfo.
+const CHROMIUM = typeof api.runtime.getBrowserInfo !== 'function';
 const $ = (id) => document.getElementById(id);
 const kv = browserKv();
 const now = () => Date.now();
@@ -116,6 +119,9 @@ async function render() {
     $('sites').append(li);
   }
   $('pje-ligar').checked = await ligado(api).catch(() => false);
+  // No Chromium, *.jus.br aparece no pedido de permissão como "qualquer site"
+  // (jus.br é sufixo público, como com.br). O Firefox mostra o domínio.
+  $('pje-chromium').hidden = CHROMIUM === false || $('pje-ligar').checked;
   const recusadas = await kv.session.get('pjeRecusadas', []);
   $('pje-recusadas').replaceChildren(...recusadas.map(({ origin, tarefa }) => {
     const li = document.createElement('li');
@@ -139,8 +145,8 @@ $('importar').addEventListener('click', () => {
 $('pje-ligar').addEventListener('click', () => {
   const caixa = $('pje-ligar');
   const acao = caixa.checked
-    ? ligarNoGesto(api).then((ligou) => { $('pje-aviso').hidden = !ligou; })
-    : retirar(api).then(() => { $('pje-aviso').hidden = true; });
+    ? ligarNoGesto(api).then((ligou) => { $('pje-aviso').hidden = !ligou; $('pje-chromium').hidden = !CHROMIUM || ligou; })
+    : retirar(api).then(() => { $('pje-aviso').hidden = true; $('pje-chromium').hidden = !CHROMIUM; });
   caixa.disabled = true;
   acao
     .catch(() => status('erro', 'Não foi possível concluir a ação.'))

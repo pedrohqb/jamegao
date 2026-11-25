@@ -1,5 +1,6 @@
 body { font: 16px/1.5 system-ui, sans-serif; max-width: 40rem; margin: 2rem auto; padding: 0 1rem; color: #1b1b1b; }
 h1 { font-size: 1.4rem; }
+.nota { font-size: .85em; color: #555; margin: .3rem 0 .8rem; }
 .aviso { background: #eef3fb; border-left: 4px solid #2a5db0; padding: .6rem 1rem; margin-bottom: 1.5rem; }
 #area { border: 2px dashed #888; border-radius: 8px; padding: 1rem; margin-bottom: 1rem; }
 #area.sobre { border-color: #2a5db0; background: #f3f7fd; }
