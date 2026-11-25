@@ -33,7 +33,7 @@ No PJe:
 - O PJe vem desligado. Para usá-lo, marque "Usar também no PJe" no ícone do Jamegão (ou no fim da importação) e aceite a permissão para os sites do Judiciário (*.jus.br), pedida uma única vez.
 - Certificados importados antes da versão 0.3.0 precisam ser importados de novo, porque o PJe exige a cadeia completa do certificado.
 - Quem tem o programa assinador do PJe instalado pode continuar com ele: a janela do Jamegão oferece "Usar o programa instalado" a cada pedido, e "Bloquear este site" passa aquele site ao programa a partir do próximo pedido.
-- Faz login e assinatura de documentos. Testados no PJe do TJMA (1º grau), no Brave, numa versão de teste anterior à 0.3.0; os demais tribunais, o Firefox e o Android ainda não foram testados no PJe.
+- Faz login e assinatura de documentos. Testados no PJe do TJDFT, no Firefox, na 0.3.0, e no PJe do TJMA (1º grau), no Brave, numa versão de teste anterior; os demais tribunais e o Android ainda não foram testados no PJe.
 
 Pontos importantes:
 - Serve apenas para certificado A1 (arquivo). Não atende token nem cartão.

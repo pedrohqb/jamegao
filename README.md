@@ -176,7 +176,7 @@ O Jamegão faz o login e a assinatura de documentos, as duas operações vistas 
 
 #### Onde foi testado
 
-Login e assinatura de documentos foram testados no PJe do TJMA (1º grau), no Brave, com certificado A1 real, numa versão de teste anterior à 0.3.0. A 0.3.0 ainda não foi testada num PJe real, nem no Firefox ou no Android. Os demais tribunais da lista do PJe mantida pelo CNJ devem funcionar do mesmo jeito, mas ainda não foram testados. Se você usar um deles, conte como foi numa [issue](https://github.com/pedrohqb/jamegao/issues).
+Login e assinatura de documentos foram testados, com certificado A1 real, no PJe do TJDFT, no Firefox, já na 0.3.0, e no PJe do TJMA (1º grau), no Brave, numa versão de teste anterior. No Android, o PJe ainda não foi testado. Os demais tribunais da lista do PJe mantida pelo CNJ devem funcionar do mesmo jeito, mas ainda não foram testados. Se você usar um deles, conte como foi numa [issue](https://github.com/pedrohqb/jamegao/issues).
 
 ---
 
@@ -250,7 +250,7 @@ Jamegão is a Firefox and Chromium (Chrome, Edge, Brave) extension that lets Bra
 
 It is an independent project, not affiliated with the vendors of e-SAJ, of the official extensions or of the PJe signer program, nor with the CNJ or the courts. A3 tokens and smart cards are not supported; for those, see the sister project [Tessera](https://github.com/pedrohqb/tessera).
 
-**Works on** Linux, Windows, macOS, ChromeOS, Android (Firefox 142+) and even OpenBSD (e-SAJ login tested), with Firefox 140+ or Chromium-based browsers 121+, on the e-SAJ portals of TJSP, TJAL, TJMS, TJAC, TJCE and TJBA (tested so far on TJSP and TJAL) and, since 0.3.0, on PJe (login and document signing tested on TJMA, first instance, with Brave, on a test build earlier than 0.3.0).
+**Works on** Linux, Windows, macOS, ChromeOS, Android (Firefox 142+) and even OpenBSD (e-SAJ login tested), with Firefox 140+ or Chromium-based browsers 121+, on the e-SAJ portals of TJSP, TJAL, TJMS, TJAC, TJCE and TJBA (tested so far on TJSP and TJAL) and, since 0.3.0, on PJe (login and document signing tested on TJDFT with Firefox on 0.3.0, and on TJMA, first instance, with Brave on an earlier test build).
 
 **Install.** Firefox: install from [Firefox Add-ons](https://addons.mozilla.org/firefox/addon/jamegao/); then check in `about:addons` → Jamegão → Permissions that site access is on. Chromium browsers (Chrome, Edge, Brave): install from the [Chrome Web Store](https://chromewebstore.google.com/detail/pkmhmpmgojhgogcklacckpideochcggj). Jamegão is for people who do not use the official signing extensions: if one is active on the page, Jamegão turns itself off there, so disable them in that browser profile.
 

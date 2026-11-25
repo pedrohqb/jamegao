@@ -55,10 +55,15 @@ usuário); só o teste manual prova.
   da janela do ícone), reimportar o PFX, login e assinatura de documentos no
   TJMA, login num TRT ou TRF, "Usar o programa instalado" e o e-SAJ do TJSP
   sem mudança.
-- O README, as descrições das lojas e as notas da versão dizem que login e
-  assinatura foram testados no TJMA, no Brave, "numa versão de teste
-  anterior à 0.3.0" (a spike, `pje-spike`, 24/11/2026). Depois do teste
-  manual da 0.3.0, esses textos passam a dizer o que foi testado nela.
+- Teste manual da 0.3.0 em 25/11/2026: login e assinatura de documento no
+  PJe do TJDFT, no Firefox, com A1 real, num processo real. A primeira
+  tentativa de assinar foi recusada pelo TJDFT com
+  `pje.certificadoDigitalService.error.verificaAssinatura.validarCertificado`;
+  a segunda, logo em seguida e sem mudança nenhuma, foi aceita (provável falha
+  passageira da validação do certificado no servidor). Se repetir, colher as
+  linhas `[Jamegão]` do console e a resposta de `arquivoAssinadoUpload.seam`.
+  O TJMA foi testado só na spike (`pje-spike`, 24/11/2026, Brave). Os textos
+  públicos já dizem isso.
 - Enviar às duas lojas: zip `dist/jamegao-0.3.0.zip`, notas da versão e notas
   ao revisor (`docs/lojas/roteiro-de-envio.md`, seção 5). O aviso da
   validação da Mozilla de que `background.service_worker` é ignorado pelo
