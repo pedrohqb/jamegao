@@ -122,7 +122,7 @@ As mudanças de cada versão, em detalhe, estão no histórico do git e em [Pend
 
 21. **A tentativa de listar.**
     - *Objetivo:* Pedro considerou o Jamegão praticamente pronto e quis deixá-lo público também na Mozilla. A 0.1.2 era a 0.1.1 sem o `update_url`, porque uma versão listada é atualizada pela própria loja.
-    - *O que aconteceu:* a Mozilla a desativou antes de analisar, quando a 0.2.0 entrou na fila.
+    - *O que aconteceu:* a 0.1.2 foi excluída antes de ser analisada, ao ser enviada a 0.2.0, que passou a ocupar o lugar dela na fila da versão listada (o registro de atividade do AMO mostra as duas coisas no mesmo minuto).
     - *Consequência:* a 0.1.2 saiu do `updates.json`.
 
 ## 0.2.0 (24/11): Firefox do Android
@@ -253,7 +253,7 @@ As mudanças de cada versão, em detalhe, estão no histórico do git e em [Pend
     - *Variante Firefox:* a ficha da Mozilla usa uma variante da captura do popup sem a nota do Chrome (`3-popup-firefox.png`).
 47. **O envio.**
     - A 0.3.0 foi enviada à Chrome Web Store com os textos e as imagens atualizados.
-    - Na Mozilla, Pedro cancelou a 0.2.0, que ainda esperava a revisão manual, e enviou a 0.3.0 no lugar. O pacote é o mesmo nas duas lojas.
+    - Na Mozilla, Pedro excluiu a 0.2.0, que ainda esperava a revisão manual. Sem versão nenhuma, a extensão passou a "Incompleto"; dois minutos depois, com a 0.3.0 enviada, voltou a "Aguardando análise". O pacote é o mesmo nas duas lojas.
     - A release `v0.3.0` no GitHub tem só o zip para Chromium.
 
 ## Estado em 25/11
