@@ -144,9 +144,9 @@ Por que uma permissão tão ampla: o PJe está em dezenas de endereços, todos e
 
 #### 2. Importar o certificado de novo
 
-O PJe exige a cadeia completa do certificado (o seu e os das autoridades certificadoras), que o Jamegão só passou a guardar na versão 0.3.0. Os certificados importados antes aparecem no ícone com o aviso **"Importe de novo para usar no PJe."** Importe o mesmo arquivo PFX de novo (ícone → **Importar certificado**): ele substitui o registro antigo, e no e-SAJ nada muda. Importe antes de usar o PJe: com um certificado importado antes da 0.3.0, a janela do Jamegão no PJe só mostra o aviso de reimportação e o botão **Fechar**, sem **Usar o programa instalado**.
+O PJe exige a cadeia completa do certificado (o seu e os das autoridades certificadoras), que o Jamegão só passou a guardar na versão 0.3.0. Os certificados importados antes aparecem no ícone com o aviso **"Importe de novo para usar no PJe."** Importe o mesmo arquivo PFX de novo (ícone → **Importar certificado**): ele substitui o registro antigo, e no e-SAJ nada muda. Importe antes de usar o PJe: com um certificado importado antes da 0.3.0, a janela do Jamegão no PJe só mostra o aviso de reimportação e os botões **Usar o programa instalado** e **Fechar**; nada é assinado.
 
-Se o seu PFX não trouxer as autoridades certificadoras, o ícone avisa: o PJe pode recusá-lo. Nesse caso, obtenha com a sua autoridade certificadora o arquivo com a cadeia completa.
+Se o seu PFX não trouxer as autoridades certificadoras, o ícone avisa: o PJe pode recusá-lo, e é preciso pedir à certificadora o arquivo PFX com a cadeia completa.
 
 #### 3. Entrar e assinar
 

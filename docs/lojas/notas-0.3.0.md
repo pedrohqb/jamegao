@@ -20,9 +20,10 @@ lugar do programa assinador que o PJe manda instalar.
   certificados importados antes aparecem no ícone com o aviso "Importe de
   novo para usar no PJe.": importe o mesmo arquivo PFX, que substitui o
   registro antigo. No e-SAJ nada muda. Importe antes de usar o PJe: com
-  um certificado antigo, a janela do Jamegão no PJe só mostra o aviso e
-  "Fechar". Se o PFX não trouxer as autoridades
-  certificadoras, o ícone avisa que o PJe pode recusá-lo.
+  um certificado antigo, a janela do Jamegão no PJe só mostra o aviso,
+  "Usar o programa instalado" e "Fechar". Se o PFX não trouxer as
+  autoridades certificadoras, o ícone avisa que o PJe pode recusá-lo e
+  orienta a pedir à certificadora o PFX com a cadeia completa.
 - **Login e assinatura de documentos.** Cada login e cada lote de documentos
   pedem confirmação na janela do Jamegão, com o site e a quantidade. Com mais
   de um certificado, a janela deixa escolher. Quem envia as assinaturas ao

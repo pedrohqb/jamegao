@@ -124,12 +124,14 @@ perfil de sempre serve), para o passo 2.
 
 2. **Certificado antigo e reimportação.** Esperado, antes de reimportar: no
    ícone, o certificado aparece com "Importe de novo para usar no PJe.". No
-   login do PJe (passo 3), a janela do Jamegão diz que o certificado foi
-   importado antes do suporte ao PJe e só oferece **Fechar**; nada é
-   assinado. Então importe o **mesmo** PFX (ícone → **Importar
-   certificado**). Esperado: um só certificado na lista (o registro foi
-   substituído, não duplicado), sem o aviso. Se o ícone disser que o arquivo
-   não trouxe as autoridades certificadoras, anote: o PJe pode recusar.
+   login do PJe (passo 3), a janela do Jamegão mostra o site, diz que o
+   certificado foi importado antes do suporte ao PJe e oferece só **Usar o
+   programa instalado** e **Fechar**; nada é assinado. Então importe o
+   **mesmo** PFX (ícone → **Importar certificado**). Esperado: um só
+   certificado na lista (o registro foi substituído, não duplicado), sem o
+   aviso. Se o ícone disser que o arquivo não trouxe as autoridades
+   certificadoras (e pedir à certificadora o PFX com a cadeia completa),
+   anote: o PJe pode recusar.
 
 3. **Login no PJe do TJMA.** Recarregue a página do PJe do TJMA e entre por
    certificado. Esperado:
@@ -148,13 +150,23 @@ perfil de sempre serve), para o passo 2.
    https://pje.tjma.jus.br com o certificado de [seu nome]", com o número
    certo de documentos; uma confirmação para o lote; o PJe mostra cada
    documento assinado. Não protocole só para testar.
+   - Se, depois de você confirmar, o PJe disser que o assinador não está
+     disponível, **não mande assinar o lote de novo**: os documentos podem
+     já ter sido assinados e enviados (o Jamegão responde à página por uma
+     imagem embutida, e a política de segurança do site pode barrá-la).
+     Abra o console da página (F12 → Console), procure um erro de Content
+     Security Policy que cite `img-src` e mande-o, com o passo e o tribunal.
 
 5. **Login num TRT ou TRF.** Entre por certificado no PJe de um Tribunal
    Regional do Trabalho ou Federal (por exemplo, o do seu estado). Esperado:
    igual ao passo 3. Se nenhuma janela abrir e o PJe disser que o assinador
    não está disponível, abra o ícone: ele deve mostrar "O PJe pediu uma
    operação que o Jamegão ainda não faz: [operação] em [site]". Anote a
-   operação e o site.
+   operação e o site. Se a janela abriu e o PJe disse que o assinador não
+   está disponível depois de você confirmar, faça como no passo 4: não
+   repita, procure no console o erro de Content Security Policy (`img-src`)
+   e mande-o. Se chegar a assinar documentos nesse tribunal, vale o mesmo:
+   não repita o lote.
 
 6. **"Usar o programa instalado".** Com o programa do PJe instalado e
    rodando, peça o login e clique em **Usar o programa instalado** na
