@@ -37,7 +37,7 @@ function semComentarios(js) {
 }
 
 test('nenhum texto voltado ao usuário cita as marcas', () => {
-  const arquivos = ['ext/manifest.json', 'docs/lojas/descricao.md', 'docs/lojas/ficha-mozilla.md', 'docs/lojas/notas-0.3.0.md', 'docs/lojas/roteiro-de-envio.md', 'PRIVACIDADE.md', 'README.md'];
+  const arquivos = ['ext/manifest.json', 'docs/lojas/descricao.md', 'docs/lojas/ficha-mozilla.md', 'docs/lojas/notas-0.3.0.md', 'docs/lojas/roteiro-de-envio.md', 'PRIVACIDADE.md', 'README.md', 'docs/HISTORICO.md'];
   const textos = new Map(arquivos.map((f) => [f, ler(f)]));
   for (const p of listar(ext)) {
     const r = rel(p);

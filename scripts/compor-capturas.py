@@ -14,7 +14,9 @@ ITENS = [
     ('2-site.png', 'cru-site.png', 'Só os sites que você autoriza',
      'Na primeira vez, o e-SAJ precisa da sua permissão para ver os certificados importados.'),
     ('3-popup.png', 'cru-popup.png', 'Tudo à vista no ícone',
-     'Trave o cofre, veja a validade dos certificados e decida, site a site, quem pode usá-los.'),
+     'Trave o cofre, veja a validade dos certificados, decida, site a site, quem pode usá-los e ligue o PJe.'),
+    ('3-popup-firefox.png', 'cru-popup-firefox.png', 'Tudo à vista no ícone',
+     'Trave o cofre, veja a validade dos certificados, decida, site a site, quem pode usá-los e ligue o PJe.'),
     ('4-importar.png', 'cru-importar.png', 'Importe o PFX uma vez',
      'A chave fica cifrada no navegador, protegida pela senha do cofre. Nada é enviado a servidor algum.'),
 ]

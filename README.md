@@ -54,7 +54,7 @@ Se você usar um desses que ainda não foram testados, conte como foi numa [issu
 1. Abra a página do Jamegão em **[Firefox Add-ons](https://addons.mozilla.org/firefox/addon/jamegao/)** e clique em **Adicionar ao Firefox**. A extensão se atualiza sozinha.
 2. Em `about:addons` → Jamegão → **Permissões**, confira se o acesso aos sites do e-SAJ está ligado. O Firefox às vezes deixa desligado.
 
-Quem instalou uma versão anterior pelo arquivo `.xpi` da [página de versões](https://github.com/pedrohqb/jamegao/releases) não precisa fazer nada: o Firefox passa para a versão da loja sozinho, e o cofre e os certificados continuam. O arquivo `.xpi` continua disponível lá, para quem preferir instalar à mão (arrastando-o para o Firefox).
+Quem instalou uma das primeiras versões pelo arquivo `.xpi` da [página de versões](https://github.com/pedrohqb/jamegao/releases) não precisa fazer nada: o Firefox passa para a versão da loja sozinho, e o cofre e os certificados continuam. Desde a 0.2.0, a página de versões só traz o pacote para os navegadores Chromium; no Firefox, a instalação é pela loja.
 
 #### Android
 
@@ -193,7 +193,7 @@ Detalhes na [política de privacidade](PRIVACIDADE.md).
 
 ### Perguntas frequentes
 
-**O e-SAJ diz que o componente de assinatura não está instalado.** Confira se há algum certificado importado (o Jamegão só se apresenta ao e-SAJ quando há). No Firefox, confira também a permissão de acesso aos sites (passo 3 da instalação). Depois, recarregue a página.
+**O e-SAJ diz que o componente de assinatura não está instalado.** Confira se há algum certificado importado (o Jamegão só se apresenta ao e-SAJ quando há). No Firefox, confira também a permissão de acesso aos sites (passo 2 da instalação no Firefox). Depois, recarregue a página.
 
 **Com a extensão oficial ativa, nada acontece ou dá erro.** É de propósito: com a oficial presente, o Jamegão se desliga. Desative a oficial e recarregue a página.
 
@@ -211,7 +211,8 @@ Detalhes na [política de privacidade](PRIVACIDADE.md).
 
 - **Testar a assinatura de petição no Chromium** (no Firefox, já funcionou no TJSP).
 - **Testar TJMS, TJAC, TJCE e TJBA.**
-- **Testar o PJe no Firefox e em outros tribunais** (Justiça do Trabalho, Justiça Federal e outros estaduais).
+- **Testar a assinatura de documentos no PJe de outros tribunais** (Justiça do Trabalho, Justiça Federal e outros estaduais; o login já foi testado no TRT1, no TRT2 e no TRF3).
+- **Testar o PJe no Firefox do Android.**
 - **Outras operações do PJe**, uma a uma, quando aparecerem num tribunal real.
 
 ---
@@ -234,6 +235,7 @@ Para testar uma alteração sem empacotar: no Chromium, "Carregar sem compactaç
 - [Pendências](docs/PENDENCIAS.md): o que foi testado, o que falta e o que vai para a próxima versão.
 - [Desenho](docs/superpowers/specs/2026-11-21-jamegao-design.md): decisões, protocolo e segurança; o do PJe, [à parte](docs/superpowers/specs/2026-11-24-pje-design.md).
 - [Envio às lojas](docs/lojas/roteiro-de-envio.md): textos, capturas e passo a passo.
+- [Histórico](docs/HISTORICO.md): como o Jamegão chegou à forma atual, versão por versão, com cada problema encontrado, a causa e a correção.
 
 ---
 

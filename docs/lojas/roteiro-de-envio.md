@@ -8,7 +8,7 @@ Textos prontos: nome, resumo e descrição longa em `docs/lojas/descricao.md`; p
 
 1. Rode `npm run empacotar`. O arquivo `dist/jamegao-<versão>.zip` é o mesmo para as duas lojas.
 2. ID do Firefox: `jamegao@pedrohqb.github.io` (confirmado por Pedro em 22/11/2026). Fica permanente a partir do primeiro envio ao addons.mozilla.org; não troque.
-3. Ícones: `ext/icons/` (fonte em `docs/marca/icone.svg`; o de 128 px é `ext/icons/icon-128.png`). Capturas de tela prontas, 1280x800, com dados fictícios: `docs/lojas/capturas/1-assinatura.png` a `4-importar.png`. Imagem promocional pequena (440x280, Chrome): `docs/lojas/capturas/promocional-440x280.png`. Para refazer: `node scripts/capturas.mjs <pasta>` e `python3 scripts/compor-capturas.py <pasta> docs/lojas/capturas`.
+3. Ícones: `ext/icons/` (fonte em `docs/marca/icone.svg`; o de 128 px é `ext/icons/icon-128.png`). Capturas de tela prontas, 1280x800, com dados fictícios: `docs/lojas/capturas/1-assinatura.png` a `4-importar.png`. Imagem promocional pequena (440x280, Chrome): `docs/lojas/capturas/promocional-440x280.png`. Para refazer: `node scripts/capturas.mjs <pasta>` e `python3 scripts/compor-capturas.py <pasta> docs/lojas/capturas`; a promocional, `python3 scripts/promocional.py docs/lojas/capturas/promocional-440x280.png`.
 
 ## 1. Chrome Web Store
 

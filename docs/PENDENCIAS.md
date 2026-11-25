@@ -1,6 +1,6 @@
 # Pendências do Jamegão
 
-## Versão 0.3.0 (ramo `pje`, 24/11/2026): PJe
+## Versão 0.3.0 (24 e 25/11/2026): PJe
 
 Estado em 24/11/2026. Desenho em
 `docs/superpowers/specs/2026-11-24-pje-design.md`; plano em
@@ -72,12 +72,17 @@ usuário); só o teste manual prova.
   (25/11/2026), num cadastro não protocolado.
   O TJMA também foi testado na spike (`pje-spike`, 24/11/2026, Brave). Os textos
   públicos já dizem isso.
-- Enviar às duas lojas: zip `dist/jamegao-0.3.0.zip`, notas da versão e notas
-  ao revisor (`docs/lojas/roteiro-de-envio.md`, seção 5). O aviso da
-  validação da Mozilla de que `background.service_worker` é ignorado pelo
-  Firefox fica (um manifesto só para os dois navegadores) e está explicado
-  nas notas ao revisor.
-- Criar a release `v0.3.0` no GitHub, só com o zip para Chromium.
+- Enviada às duas lojas em 25/11/2026 (zip `dist/jamegao-0.3.0.zip`, notas
+  da versão e notas ao revisor). Na Mozilla, a 0.2.0 que aguardava a revisão
+  manual foi cancelada e a 0.3.0 foi no lugar. Capturas 3 (popup, com
+  variante sem a nota do Chrome para a Mozilla) e imagem promocional
+  refeitas com o PJe.
+- Release `v0.3.0` criada no GitHub, só com o zip para Chromium.
+- Para a próxima versão: o aviso da tela de importação ainda diz "só o site
+  do e-SAJ"; deve citar também o PJe.
+
+O histórico completo, com os problemas e as decisões de cada versão, está em
+`docs/HISTORICO.md`.
 
 ## Histórico (0.1 a 0.2.0)
 

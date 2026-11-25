@@ -72,7 +72,7 @@ Guarde sempre a cópia de segurança do seu arquivo PFX. Ao desinstalar a extens
 ## Mídia
 
 - **Ícone:** `ext/icons/icon-128.png`
-- **Capturas de tela:** `capturas/1-assinatura.png` a `capturas/4-importar.png`, nessa ordem
+- **Capturas de tela:** `capturas/1-assinatura.png`, `capturas/2-site.png`, `capturas/3-popup-firefox.png` (sem o aviso do Chrome) e `capturas/4-importar.png`, nessa ordem
 
 ## Notas para os revisores
 
