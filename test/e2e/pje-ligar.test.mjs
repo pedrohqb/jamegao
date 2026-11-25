@@ -166,6 +166,8 @@ test('ligar pelo popup: o TJMA passa a ser atendido', { skip: SEM_GESTO_FIREFOX 
   assert.equal(await marcado(popup), false);
   await popup.click('#pje-ligar');
   await popup.waitForSelector('#pje-ligar:checked');
+  // A caixa fica marcada no clique; o aviso só aparece quando o ligar termina.
+  await popup.waitForSelector('#pje-aviso:not([hidden])');
   assert.equal(await popup.$eval('#pje-aviso', (e) => (e.hidden ? '' : e.textContent.trim())), RECARREGUE);
   assert.deepEqual(await registrados(), LIGADOS);
   assert.equal(await escolha(), true);

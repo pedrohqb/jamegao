@@ -23,10 +23,11 @@ function listar(dir) {
 const rel = (p) => relative(ext, p).split(sep).join('/');
 
 // protocolos/esaj/conteudo.js e lib/protocol.js carregam os identificadores técnicos do protocolo
-// (IDs oficiais das extensões e prefixos de evento com o nome das marcas): são
+// (IDs oficiais das extensões e prefixos de evento com o nome das marcas), e
+// protocolos/pje/pagina.js o caminho /pjeOffice/ que a página do PJe chama: são
 // strings de fio, não texto voltado ao usuário. vendor/ é código de terceiros.
-const EXCLUIDOS = new Set(['protocolos/esaj/conteudo.js', 'lib/protocol.js']);
-const MARCAS = /websigner|web ?pki|softplan|lacuna/i;
+const EXCLUIDOS = new Set(['protocolos/esaj/conteudo.js', 'lib/protocol.js', 'protocolos/pje/pagina.js']);
+const MARCAS = /websigner|web ?pki|softplan|lacuna|pjeoffice/i;
 
 // Comentários de código não chegam ao usuário.
 function semComentarios(js) {
@@ -36,7 +37,7 @@ function semComentarios(js) {
 }
 
 test('nenhum texto voltado ao usuário cita as marcas', () => {
-  const arquivos = ['ext/manifest.json', 'docs/lojas/descricao.md', 'docs/lojas/roteiro-de-envio.md', 'PRIVACIDADE.md', 'README.md'];
+  const arquivos = ['ext/manifest.json', 'docs/lojas/descricao.md', 'docs/lojas/ficha-mozilla.md', 'docs/lojas/notas-0.3.0.md', 'docs/lojas/roteiro-de-envio.md', 'PRIVACIDADE.md', 'README.md'];
   const textos = new Map(arquivos.map((f) => [f, ler(f)]));
   for (const p of listar(ext)) {
     const r = rel(p);

@@ -28,7 +28,8 @@ test('manifesto', () => {
 
 test('valores fixos', () => {
   assert.equal(m.name, 'Jamegão');
-  assert.equal(m.version, '0.2.0');
+  assert.equal(m.version, '0.3.0');
+  assert.equal(m.description, 'Assinatura no e-SAJ e no PJe com certificado A1, sem instalar programa.');
   assert.equal(m.minimum_chrome_version, '121');
   assert.equal(m.action.default_popup, 'pages/popup.html');
   assert.deepEqual(m.background, { service_worker: 'background.js', scripts: ['background.js'], type: 'module' });
@@ -39,17 +40,26 @@ test('valores fixos', () => {
   assert.equal(m.browser_specific_settings.gecko.update_url, undefined);
 });
 
-test('updates.json leva quem tem a 0.1.1 à versão do manifesto, com o .xpi da release', async () => {
+// A 0.3.0 não tem .xpi no GitHub (decisão de Pedro, 24/11/2026): quem atualiza
+// é a Mozilla. O updates.json fica só para quem ainda tem a 0.1.1 pelo .xpi.
+test('updates.json só aponta para endereços https://', () => {
   const u = JSON.parse(fs.readFileSync(new URL('../../updates.json', import.meta.url), 'utf8'));
   const versoes = u.addons[m.browser_specific_settings.gecko.id].updates;
-  const atual = versoes.find((v) => v.version === m.version);
-  assert.ok(atual, 'updates.json precisa listar a versão ' + m.version);
-  assert.equal(atual.update_link, `https://github.com/pedrohqb/jamegao/releases/download/v${m.version}/jamegao-${m.version}-firefox.xpi`);
+  assert.ok(versoes.length > 0);
   for (const v of versoes) assert.match(v.update_link, /^https:\/\//);
 });
 
 test('vendor/forge.min.js é o do node-forge instalado', async () => {
   const { createHash } = await import('node:crypto');
-  const sha = (p) => createHash('sha256').update(fs.readFileSync(new URL(p, import.meta.url))).digest('hex');
-  assert.equal(sha('../../ext/vendor/forge.min.js'), sha('../../node_modules/node-forge/dist/forge.min.js'));
+  const ler = (p) => fs.readFileSync(new URL(p, import.meta.url), 'utf8');
+  // Única alteração do vendor: o validador da Mozilla aponta o construtor
+  // Function. A linha nunca roda (ali o `this` já é o objeto global, e a CSP
+  // da extensão a barraria), e `globalThis` é o mesmo objeto. Se a contagem
+  // não for exatamente uma, o node-forge mudou e a troca precisa ser revista.
+  const alvo = 'new Function("return this")()';
+  const original = ler('../../node_modules/node-forge/dist/forge.min.js');
+  assert.equal(original.split(alvo).length - 1, 1, 'o node-forge deve ter exatamente uma ocorrência de ' + alvo);
+  const esperado = original.replace(alvo, 'globalThis');
+  const sha = (t) => createHash('sha256').update(t).digest('hex');
+  assert.equal(sha(ler('../../ext/vendor/forge.min.js')), sha(esperado));
 });

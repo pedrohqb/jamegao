@@ -6,16 +6,16 @@
 
 ## Português
 
-O Jamegão é uma extensão para Firefox e para os navegadores Chromium (Chrome, Edge, Brave) que permite **entrar e assinar no e-SAJ com certificado digital A1** (o arquivo PFX), direto no navegador, **sem instalar programa algum no computador**. Ela ocupa o lugar das extensões oficiais de assinatura que o e-SAJ pede, que dependem de um programa nativo instalado à parte e que não existe para todos os sistemas: não há versão para Mac com processador Apple (M1 em diante), por exemplo. Com o Jamegão, basta o navegador.
+O Jamegão é uma extensão para Firefox e para os navegadores Chromium (Chrome, Edge, Brave) que permite **entrar e assinar no e-SAJ e no PJe com certificado digital A1** (o arquivo PFX), direto no navegador, **sem instalar programa algum no computador**. No e-SAJ, ela ocupa o lugar das extensões oficiais de assinatura, que dependem de um programa nativo instalado à parte e que não existe para todos os sistemas: não há versão para Mac com processador Apple (M1 em diante), por exemplo. No PJe, se você ligar, ela ocupa o lugar do programa assinador que o PJe manda instalar (veja [PJe](#pje)). Com o Jamegão, basta o navegador.
 
 *Jamegão* é como se diz, na fala popular, a assinatura de alguém.
 
-O Jamegão é um projeto independente, sem vínculo com os fornecedores do e-SAJ e das extensões oficiais nem com os tribunais.
+O Jamegão é um projeto independente, sem vínculo com os fornecedores do e-SAJ, das extensões oficiais e do programa assinador do PJe, nem com o CNJ ou os tribunais.
 
 | Certificado | Atende? |
 |---|---|
 | A1 (arquivo `.pfx` ou `.p12`) | **sim** |
-| A3 em token ou cartão | não: use o [Tessera](https://github.com/pedrohqb/tessera), projeto irmão, com as extensões oficiais |
+| A3 em token ou cartão | não: use o [Tessera](https://github.com/pedrohqb/tessera), projeto irmão, com as extensões oficiais ou o programa do PJe |
 | Certificado em nuvem (SerproID, RemoteID, Bird ID) | não |
 
 ![Janela de confirmação do Jamegão antes de assinar um lote, com certificado fictício](docs/lojas/capturas/1-assinatura.png)
@@ -32,7 +32,7 @@ O Jamegão é um projeto independente, sem vínculo com os fornecedores do e-SAJ
 | Firefox para Android | 142 | [Firefox Add-ons](https://addons.mozilla.org/android/addon/jamegao/), pelo menu **⋮ → Extensões** do Firefox |
 | Google Chrome, Microsoft Edge, Brave, Chromium | 121 | [Chrome Web Store](https://chromewebstore.google.com/detail/pkmhmpmgojhgogcklacckpideochcggj) ([abaixo](#chrome-edge-brave-e-chromium)) |
 
-**Tribunais:** o Jamegão só atua nos portais e-SAJ abaixo. Nos sistemas que já aceitam o certificado direto no navegador (eproc, Projudi, PJe pelo navegador), ele não é necessário.
+**Tribunais:** o Jamegão atua nos portais e-SAJ abaixo e, se você ligar, no PJe (veja [PJe](#pje)). No eproc e no Projudi, que já aceitam o certificado direto no navegador, ele não é necessário.
 
 | Tribunal | Endereço | Situação |
 |---|---|---|
@@ -80,6 +80,8 @@ O Jamegão é para quem **não** usa as extensões oficiais de assinatura. Se um
 
 Para usar o Jamegão, **desative ou remova as extensões oficiais** nesse perfil do navegador e recarregue a página do e-SAJ. Se você precisa delas para um token A3 ou para um certificado em nuvem, use um perfil do navegador para cada caso.
 
+No PJe é diferente: o programa instalado pode continuar no computador, e a janela do Jamegão deixa escolher, a cada pedido, quem atende (veja [PJe](#pje)).
+
 ---
 
 ### Uso
@@ -118,19 +120,72 @@ Sem resposta em 2 minutos, o pedido vence e a janela fecha.
 
 - **Cofre:** se está travado ou destravado, e o botão **Travar agora**. O cofre trava sozinho depois de 30 minutos sem uso e quando o navegador fecha.
 - **Certificados:** os importados, com a validade. Avisa quando faltam menos de 30 dias para vencer.
-- **Sites:** cada e-SAJ que já pediu acesso, com as opções **Permitido**, **Bloquear** e **Desbloquear**. Um aviso aparece quando o Jamegão encontrou uma extensão oficial e se desligou em algum site.
+- **Sites:** cada site que já pediu acesso, com as opções **Permitido**, **Bloquear** e **Desbloquear**. Um aviso aparece quando o Jamegão encontrou uma extensão oficial e se desligou em algum e-SAJ.
+- **PJe:** a caixa **Usar também no PJe** e, se o PJe pediu uma operação que o Jamegão ainda não faz, o aviso com a operação e o site.
 - **Esqueci a senha:** sem a senha do cofre não há como recuperar a chave; o botão apaga cofre, certificados e sites, e você importa o PFX de novo.
 
 Senhas erradas seguidas fazem o Jamegão esperar antes da próxima tentativa (até 5 minutos).
 
 ---
 
+### PJe
+
+Desde a versão 0.3.0, o Jamegão também entra e assina no PJe, no lugar do programa assinador que o PJe manda instalar. **Ele vem desligado:** quem não liga continua exatamente como antes, com o programa instalado, se tiver.
+
+#### 1. Ligar (uma vez)
+
+1. No ícone do Jamegão, marque **Usar também no PJe**. O mesmo botão aparece no fim da importação do certificado.
+2. O navegador pede permissão para acessar os sites `https://*.jus.br/*`. Aceite. É só desta vez.
+3. Recarregue as páginas do PJe que estiverem abertas: só as carregadas depois de ligar têm o Jamegão.
+
+No Firefox, o pedido de permissão às vezes aparece atrás da janela do ícone. Feche a janela do ícone e aceite o pedido: o PJe fica ligado do mesmo jeito. Para desligar, desmarque a caixa.
+
+Por que uma permissão tão ampla: o PJe está em dezenas de endereços, todos em `.jus.br`, sem padrão de nome. Ela só é pedida a quem liga o PJe, para que a atualização não desative a extensão de quem usa só o e-SAJ. Nesses sites o Jamegão fica parado e só age quando a página chama o programa assinador do PJe.
+
+#### 2. Importar o certificado de novo
+
+O PJe exige a cadeia completa do certificado (o seu e os das autoridades certificadoras), que o Jamegão só passou a guardar na versão 0.3.0. Os certificados importados antes aparecem no ícone com o aviso **"Importe de novo para usar no PJe."** Importe o mesmo arquivo PFX de novo (ícone → **Importar certificado**): ele substitui o registro antigo, e no e-SAJ nada muda.
+
+Se o seu PFX não trouxer as autoridades certificadoras, o ícone avisa: o PJe pode recusá-lo. Nesse caso, obtenha com a sua autoridade certificadora o arquivo com a cadeia completa.
+
+#### 3. Entrar e assinar
+
+Entre no PJe por certificado, como faria com o programa.
+
+- **Na primeira vez em cada site** (o login do PJe fica num endereço próprio, como `sso.cloud.pje.jus.br`, e o tribunal em outro), a janela do Jamegão pergunta se aquele site pode ver os seus certificados.
+- **A cada login**, a janela mostra "Entrar no PJe de [site] com o certificado de [seu nome]".
+- **A cada lote de documentos**, a janela mostra "Assinar N documentos no PJe de [site]...", sempre, com a quantidade, e uma confirmação vale para o lote inteiro.
+- **Com mais de um certificado**, a janela mostra a lista para escolher, já marcado o último usado naquele site.
+
+Quem envia as assinaturas ao servidor do PJe é a própria página do PJe, como faria com o programa. O Jamegão continua sem fazer conexão de rede alguma.
+
+#### Com o programa do PJe instalado
+
+O programa pode continuar instalado. Na janela do Jamegão no PJe, há dois caminhos para ele:
+
+| Botão | O que faz |
+|---|---|
+| **Usar o programa instalado** | só este pedido vai para o programa instalado, e o Jamegão não assina. Serve a quem usa o A1 no Jamegão e um token ou certificado em nuvem pelo programa |
+| **Bloquear este site** | aquele site passa ao programa instalado de vez; para desfazer, use **Desbloquear** no ícone |
+
+O mesmo acontece quando não há certificado importado no Jamegão: o pedido segue para o programa. O Jamegão não verifica se o programa está rodando; se não estiver, o PJe mostra o próprio aviso de que o assinador não está disponível.
+
+#### O que ainda não faz
+
+O Jamegão faz o login e a assinatura de documentos, as duas operações vistas no PJe até agora. Se o PJe pedir outra, o Jamegão não assina e deixa o pedido seguir para o programa instalado, se houver, e o ícone mostra "O PJe pediu uma operação que o Jamegão ainda não faz: [operação] em [site]." Conte numa [issue](https://github.com/pedrohqb/jamegao/issues), com a operação e o site, para que ela entre numa próxima versão.
+
+#### Onde foi testado
+
+Login e assinatura de documentos foram testados no PJe do TJMA (1º grau), no Brave, com certificado A1 real. Os demais tribunais da lista do PJe mantida pelo CNJ devem funcionar do mesmo jeito, mas ainda não foram testados. Se você usar um deles, conte como foi numa [issue](https://github.com/pedrohqb/jamegao/issues).
+
+---
+
 ### Segurança e privacidade
 
-- A chave privada só existe decifrada dentro da extensão, durante a assinatura. Ela nunca vai para a página do e-SAJ.
+- A chave privada só existe decifrada dentro da extensão, durante a assinatura. Ela nunca vai para a página do tribunal.
 - Nenhum site recebe dados do certificado sem a sua autorização, e nenhuma assinatura é feita sem o cofre destravado e a sua confirmação na janela do Jamegão.
-- A extensão não tem servidor, não faz conexões de rede e não coleta dados. Só o site do e-SAJ que você autorizou recebe, quando pede, os dados públicos do certificado e as assinaturas que você confirmou.
-- Permissões pedidas ao navegador: só `storage` e `alarms`, e acesso apenas aos endereços da tabela de tribunais.
+- A extensão não tem servidor, não faz conexões de rede e não coleta dados. Só o site do e-SAJ ou do PJe que você autorizou recebe, quando pede, os dados públicos do certificado e as assinaturas que você confirmou. No PJe, quem as envia ao servidor do tribunal é a própria página.
+- Permissões pedidas ao navegador: `storage`, `alarms` e `scripting` (esta, para pôr o Jamegão nas páginas do PJe quando você liga), acesso aos endereços da tabela de tribunais e, só se você ligar o PJe, aos sites `https://*.jus.br/*`.
 
 Detalhes na [política de privacidade](PRIVACIDADE.md).
 
@@ -146,7 +201,9 @@ Detalhes na [política de privacidade](PRIVACIDADE.md).
 
 **Posso usar no mesmo navegador o Jamegão para o A1 e a extensão oficial para o token?** Não ao mesmo tempo. Use perfis separados do navegador: um com o Jamegão, outro com a oficial.
 
-**Funciona no PJe, no eproc ou no Projudi?** Esses sistemas não usam as extensões que o Jamegão substitui. O eproc e o Projudi aceitam o certificado direto no navegador; o PJe usa o PJeOffice.
+**Funciona no PJe, no eproc ou no Projudi?** No PJe, sim, desde a versão 0.3.0, se você ligar (veja [PJe](#pje)). O eproc e o Projudi aceitam o certificado direto no navegador e não precisam do Jamegão.
+
+**Liguei o PJe e a página continua chamando o programa.** Recarregue a página do PJe. Depois, no ícone, confira se a caixa **Usar também no PJe** está marcada, se há certificado importado sem o aviso "Importe de novo para usar no PJe." e se o site não está bloqueado.
 
 ---
 
@@ -154,12 +211,14 @@ Detalhes na [política de privacidade](PRIVACIDADE.md).
 
 - **Testar a assinatura de petição no Chromium** (no Firefox, já funcionou no TJSP).
 - **Testar TJMS, TJAC, TJCE e TJBA.**
+- **Testar o PJe no Firefox e em outros tribunais** (Justiça do Trabalho, Justiça Federal e outros estaduais).
+- **Outras operações do PJe**, uma a uma, quando aparecerem num tribunal real.
 
 ---
 
 ### Desenvolvimento
 
-O código não tem etapa de compilação: a pasta `ext/` é a extensão, com o mesmo código para Firefox e Chromium (Manifest V3). A única biblioteca de terceiros é a [node-forge](https://github.com/digitalbazaar/forge), sem alterações, usada só para ler o PFX na importação.
+O código não tem etapa de compilação: a pasta `ext/` é a extensão, com o mesmo código para Firefox e Chromium (Manifest V3). A única biblioteca de terceiros é a [node-forge](https://github.com/digitalbazaar/forge), usada só para ler o PFX na importação. Ela tem uma única alteração: `new Function("return this")()` virou `globalThis`, porque o validador da Mozilla aponta o construtor `Function`. A linha nunca roda, e um teste de unidade confere o arquivo contra o da node-forge com essa troca.
 
 ```
 npm run preparar     # baixa as cópias do SDK do e-SAJ usadas nos testes e instala as dependências
@@ -173,7 +232,7 @@ Para testar uma alteração sem empacotar: no Chromium, "Carregar sem compactaç
 
 - [Guia de testes](docs/TESTES.md): o roteiro manual no e-SAJ e a suíte automática.
 - [Pendências](docs/PENDENCIAS.md): o que foi testado, o que falta e o que vai para a próxima versão.
-- [Desenho](docs/superpowers/specs/2026-11-21-jamegao-design.md): decisões, protocolo e segurança.
+- [Desenho](docs/superpowers/specs/2026-11-21-jamegao-design.md): decisões, protocolo e segurança; o do PJe, [à parte](docs/superpowers/specs/2026-11-24-pje-design.md).
 - [Envio às lojas](docs/lojas/roteiro-de-envio.md): textos, capturas e passo a passo.
 
 ---
@@ -187,16 +246,18 @@ Para testar uma alteração sem empacotar: no Chromium, "Carregar sem compactaç
 
 ## English
 
-Jamegão is a Firefox and Chromium (Chrome, Edge, Brave) extension that lets Brazilian lawyers **log in and sign on e-SAJ court portals with an A1 digital certificate** (a PFX file), right in the browser, **with no native software installed**. It stands in for the official signing extensions e-SAJ asks for, which need a separately installed native component that is not available on every system (there is none for Apple Silicon Macs, for instance). *Jamegão* is Brazilian slang for someone's signature.
+Jamegão is a Firefox and Chromium (Chrome, Edge, Brave) extension that lets Brazilian lawyers **log in and sign on e-SAJ and PJe court systems with an A1 digital certificate** (a PFX file), right in the browser, **with no native software installed**. On e-SAJ it stands in for the official signing extensions, which need a separately installed native component that is not available on every system (there is none for Apple Silicon Macs, for instance); on PJe, once turned on, it stands in for the signer program PJe asks you to install. *Jamegão* is Brazilian slang for someone's signature.
 
-It is an independent project, not affiliated with the vendors of e-SAJ or of the official extensions, nor with the courts. A3 tokens and smart cards are not supported; for those, see the sister project [Tessera](https://github.com/pedrohqb/tessera).
+It is an independent project, not affiliated with the vendors of e-SAJ, of the official extensions or of the PJe signer program, nor with the CNJ or the courts. A3 tokens and smart cards are not supported; for those, see the sister project [Tessera](https://github.com/pedrohqb/tessera).
 
-**Works on** Linux, Windows, macOS, ChromeOS, Android (Firefox 142+) and even OpenBSD (e-SAJ login tested), with Firefox 140+ or Chromium-based browsers 121+, on the e-SAJ portals of TJSP, TJAL, TJMS, TJAC, TJCE and TJBA (tested so far on TJSP and TJAL).
+**Works on** Linux, Windows, macOS, ChromeOS, Android (Firefox 142+) and even OpenBSD (e-SAJ login tested), with Firefox 140+ or Chromium-based browsers 121+, on the e-SAJ portals of TJSP, TJAL, TJMS, TJAC, TJCE and TJBA (tested so far on TJSP and TJAL) and, since 0.3.0, on PJe (tested so far on TJMA, first instance).
 
 **Install.** Firefox: install from [Firefox Add-ons](https://addons.mozilla.org/firefox/addon/jamegao/); then check in `about:addons` → Jamegão → Permissions that site access is on. Chromium browsers (Chrome, Edge, Brave): install from the [Chrome Web Store](https://chromewebstore.google.com/detail/pkmhmpmgojhgogcklacckpideochcggj). Jamegão is for people who do not use the official signing extensions: if one is active on the page, Jamegão turns itself off there, so disable them in that browser profile.
 
 **Use.** Import your PFX once and set a vault password (8+ characters); the private key is stored encrypted in the browser profile. On e-SAJ, choose certificate login as usual. The first time on each court site, Jamegão asks whether the site may see your certificates; every signature, single or batch, needs your confirmation in Jamegão's own window, which shows how many documents will be signed. The vault locks after 30 minutes idle and when the browser closes.
 
-**Privacy.** No server, no network connections, no data collection. Only the e-SAJ site you authorized receives, on request, your certificate's public data and the signatures you confirmed. See the [privacy policy](PRIVACIDADE.md) (in Portuguese).
+**PJe.** Off by default. Turn it on with **Usar também no PJe** in the toolbar popup (or at the end of the import); the browser asks once for access to `https://*.jus.br/*`; reload any open PJe pages. Certificates imported before 0.3.0 must be imported again, because PJe needs the full certificate chain. Login and document signing are supported; any other operation PJe asks for is passed on to the installed signer program, if there is one, and listed in the popup so you can report it. In the PJe confirmation window, **Usar o programa instalado** sends that one request to the installed program, and **Bloquear este site** hands that site over to it.
+
+**Privacy.** No server, no network connections, no data collection. Only the e-SAJ or PJe site you authorized receives, on request, your certificate's public data and the signatures you confirmed; on PJe, the page itself sends them to its own server. See the [privacy policy](PRIVACIDADE.md) (in Portuguese).
 
 **Development, support and license.** No build step; see [Desenvolvimento](#desenvolvimento) for the commands. Issues are welcome at [GitHub](https://github.com/pedrohqb/jamegao/issues). License: GPL-3.0.

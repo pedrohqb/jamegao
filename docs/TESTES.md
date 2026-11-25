@@ -1,7 +1,7 @@
 # Guia de testes do Jamegão
 
-Duas partes: o teste manual no e-SAJ, que só você pode fazer, e a suíte
-automática, para quem mexer no código.
+Duas partes: o teste manual no e-SAJ e no PJe, que só você pode fazer, e a
+suíte automática, para quem mexer no código.
 
 Regra combinada: login, sempre. Assinatura de petição, só quando houver uma
 real para protocolar. Nada é protocolado só para testar.
@@ -12,7 +12,8 @@ real para protocolar. Nada é protocolado só para testar.
 
 **Chromium ou Brave**
 
-1. Baixe o ramo `v0.1` (ou descompacte o `jamegao-0.1.0.zip` numa pasta fixa).
+1. Baixe o ramo em teste (para a 0.3.0, o `pje`) ou descompacte o
+   `jamegao-<versão>.zip` numa pasta fixa.
 2. Abra `chrome://extensions` (no Brave, `brave://extensions`) e ligue o
    "Modo do desenvolvedor".
 3. Se o Jamegão já estiver instalado, clique em **recarregar** (a seta
@@ -100,10 +101,91 @@ no Firefox.
    menos uma vez: a assinatura pode usar a outra marca, que o login não
    exercita.
 
+### Roteiro do PJe (0.3.0)
+
+Faça os passos 1 a 4 e o 8 no Brave (ou Chrome) **e** no Firefox; os demais,
+em pelo menos um dos dois. Como no e-SAJ, nada é protocolado só para testar.
+Antes de começar, tenha um certificado importado **antes** da 0.3.0 (o do
+perfil de sempre serve), para o passo 2.
+
+1. **Ligar o PJe na primeira vez.** Abra o ícone e marque **Usar também no
+   PJe**. Esperado: o navegador pede permissão para `https://*.jus.br/*`; ao
+   aceitar, o ícone mostra "Recarregue as páginas do PJe que estiverem
+   abertas." Feche e reabra o ícone: a caixa continua marcada.
+   - **No Firefox**, o pedido de permissão pode aparecer atrás da janela do
+     ícone, ou a janela do ícone pode fechar sozinha. Feche a janela do
+     ícone, se ainda estiver aberta, e aceite o pedido. Reabra o ícone.
+     Esperado: a caixa está marcada (o PJe ficou ligado mesmo com o ícone
+     fechado durante o pedido).
+   - Variante: num perfil em que o PJe esteja desligado, importe um
+     certificado e use o botão **Usar também no PJe** no fim da importação.
+     Esperado: o mesmo pedido e o mesmo aviso.
+   - Recusar o pedido deixa a caixa desmarcada, e o PJe segue desligado.
+
+2. **Certificado antigo e reimportação.** Esperado, antes de reimportar: no
+   ícone, o certificado aparece com "Importe de novo para usar no PJe.". No
+   login do PJe (passo 3), a janela do Jamegão diz que o certificado foi
+   importado antes do suporte ao PJe e só oferece **Fechar**; nada é
+   assinado. Então importe o **mesmo** PFX (ícone → **Importar
+   certificado**). Esperado: um só certificado na lista (o registro foi
+   substituído, não duplicado), sem o aviso. Se o ícone disser que o arquivo
+   não trouxe as autoridades certificadoras, anote: o PJe pode recusar.
+
+3. **Login no PJe do TJMA.** Recarregue a página do PJe do TJMA e entre por
+   certificado. Esperado:
+   - na primeira vez em cada site, a janela pergunta se ele pode ver os
+     certificados (o login fica em `sso.cloud.pje.jus.br`; o tribunal, em
+     `pje.tjma.jus.br`);
+   - a janela mostra "Entrar no PJe de https://sso.cloud.pje.jus.br com o
+     certificado de [seu nome]" (pede a senha do cofre na mesma janela, se
+     travado), com os botões **Confirmar**, **Recusar**, **Bloquear este
+     site** e **Usar o programa instalado**;
+   - o login conclui, sem o programa do PJe rodando.
+
+4. **Assinatura de documentos no TJMA.** Num cadastro de processo ou numa
+   petição em elaboração com dois ou mais documentos, mande assinar.
+   Esperado: uma janela "Assinar N documentos no PJe de
+   https://pje.tjma.jus.br com o certificado de [seu nome]", com o número
+   certo de documentos; uma confirmação para o lote; o PJe mostra cada
+   documento assinado. Não protocole só para testar.
+
+5. **Login num TRT ou TRF.** Entre por certificado no PJe de um Tribunal
+   Regional do Trabalho ou Federal (por exemplo, o do seu estado). Esperado:
+   igual ao passo 3. Se nenhuma janela abrir e o PJe disser que o assinador
+   não está disponível, abra o ícone: ele deve mostrar "O PJe pediu uma
+   operação que o Jamegão ainda não faz: [operação] em [site]". Anote a
+   operação e o site.
+
+6. **"Usar o programa instalado".** Com o programa do PJe instalado e
+   rodando, peça o login e clique em **Usar o programa instalado** na
+   janela do Jamegão. Esperado: a janela fecha e quem atende é o programa.
+   Peça o login de novo logo em seguida: a janela do Jamegão volta na hora
+   (esse botão não pausa o site por 15 s). Sem o programa rodando, o mesmo
+   botão leva ao aviso do próprio PJe de que o assinador não está
+   disponível.
+
+7. **Bloquear este site no PJe (opcional).** Clique em **Bloquear este
+   site** no login. Esperado: as tentativas seguintes naquele site vão
+   direto ao programa instalado (ou ao aviso do PJe), sem janela do
+   Jamegão. Desfaça com **Desbloquear** no ícone.
+
+8. **e-SAJ do TJSP sem mudança.** Faça o login no e-SAJ do TJSP com o PJe
+   ligado. Esperado: igual ao passo 2 do roteiro do e-SAJ, com o texto
+   "Assinar 1 documento com o certificado de [seu nome]" e sem o botão
+   **Usar o programa instalado**.
+
+9. **Desligar (opcional).** Desmarque a caixa no ícone e recarregue o PJe.
+   Esperado: o Jamegão não responde mais no PJe; atende o programa
+   instalado, se houver.
+
+No console da página do PJe (F12 → Console), os avisos do Jamegão começam
+com `[Jamegão]` (por exemplo, quando o PJe recusa um documento). Mande-os
+junto, se algo falhar.
+
 ### Se algo falhar, me mande
 
 - O passo e o navegador.
-- O console da página do e-SAJ: F12 → Console.
+- O console da página do e-SAJ ou do PJe: F12 → Console.
 - O console da extensão:
   - Chromium/Brave: em `chrome://extensions`, no cartão do Jamegão, clique
     em "service worker".
@@ -166,7 +248,8 @@ Para o Firefox (testado no 161, headless, ≈5 min):
     BROWSER=firefox FIREFOX_BIN=/caminho/do/firefox npm run e2e
 
 O harness já põe `MOZ_REMOTE_ALLOW_SYSTEM_ACCESS=1` (sem isso o WebDriver BiDi
-recusa navegar para `moz-extension://`). Além disso, o BiDi do Firefox ignora
+recusa navegar para `moz-extension://`); quem abrir o Firefox por outro
+caminho precisa pôr essa variável. Além disso, o BiDi do Firefox ignora
 de propósito os documentos de extensão (bug 1755014 da Mozilla): não emite
 `load`, não atualiza `page.url()`, não avisa quando uma janela de extensão
 fecha e recusa `input.*` e `evaluateOnNewDocument` nelas. O harness contorna
@@ -181,6 +264,9 @@ Um arquivo só, por exemplo para repetir o de convivência:
 
     node --test test/e2e/convivencia.test.mjs
 
-Estado em 24/11/2026: unidade 143/143, ponta a ponta no Chrome 39/39 e no
-Firefox 161 38/38 (1 caso, "fundo encerrado no meio do lote", fica SKIP no
-Firefox).
+Estado em 24/11/2026 (0.3.0, ramo `pje`): unidade 284/284; ponta a ponta
+no Chrome 75 de 77, com 2 SKIP (dois casos só do Firefox), e no Firefox 161
+73 de 77, com 4 SKIP: três casos encerram o fundo, o que o BiDi do Firefox
+não faz ("fundo encerrado no meio do lote" e dois do registro do PJe), e
+"ligar pelo popup", porque o clique automático não conta como gesto para o
+pedido de permissão.
