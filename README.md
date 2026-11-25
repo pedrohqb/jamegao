@@ -218,7 +218,7 @@ Detalhes na [política de privacidade](PRIVACIDADE.md).
 
 ### Desenvolvimento
 
-O código não tem etapa de compilação: a pasta `ext/` é a extensão, com o mesmo código para Firefox e Chromium (Manifest V3). A única biblioteca de terceiros é a [node-forge](https://github.com/digitalbazaar/forge), usada só para ler o PFX na importação. Ela tem uma única alteração: `new Function("return this")()` virou `globalThis`, porque o validador da Mozilla aponta o construtor `Function`. A linha nunca roda, e um teste de unidade confere o arquivo contra o da node-forge com essa troca.
+O código não tem etapa de compilação: a pasta `ext/` é a extensão, com o mesmo código para Firefox e Chromium (Manifest V3). A única biblioteca de terceiros é a [node-forge](https://github.com/digitalbazaar/forge), usada só para ler o PFX na importação. Ela vai sem nenhuma alteração, como a Mozilla exige das bibliotecas de terceiros, e um teste de unidade confere o arquivo, byte a byte, contra o da node-forge instalada.
 
 ```
 npm run preparar     # baixa as cópias do SDK do e-SAJ usadas nos testes e instala as dependências

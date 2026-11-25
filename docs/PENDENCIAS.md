@@ -21,10 +21,10 @@ Estado em 24/11/2026. Desenho em
   Jamegão não faz seguem para o programa instalado e aparecem no ícone.
 - Código em núcleo comum + um módulo por protocolo (`ext/protocolos/esaj`,
   `ext/protocolos/pje`).
-- `vendor/forge.min.js`: `new Function("return this")()` trocado por
-  `globalThis` (o validador da Mozilla aponta o construtor `Function`; a linha
-  não roda). O teste de unidade compara com o node-forge instalado depois da
-  mesma troca e falha se ela não for exatamente uma.
+- `vendor/forge.min.js` segue idêntico ao node-forge (a política da Mozilla
+  proíbe alterar bibliotecas de terceiros). O validador mostra dois avisos
+  esperados: o construtor `Function` dentro da forge e o
+  `background.service_worker` ignorado pelo Firefox.
 - Textos: README (seção "PJe"), política de privacidade, descrição das
   lojas, ficha da Mozilla, notas ao revisor e notas da versão
   (`docs/lojas/notas-0.3.0.md`). Nenhum texto público cita as marcas nem o

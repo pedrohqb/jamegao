@@ -52,14 +52,12 @@ test('updates.json só aponta para endereços https://', () => {
 test('vendor/forge.min.js é o do node-forge instalado', async () => {
   const { createHash } = await import('node:crypto');
   const ler = (p) => fs.readFileSync(new URL(p, import.meta.url), 'utf8');
-  // Única alteração do vendor: o validador da Mozilla aponta o construtor
-  // Function. A linha nunca roda (ali o `this` já é o objeto global, e a CSP
-  // da extensão a barraria), e `globalThis` é o mesmo objeto. Se a contagem
-  // não for exatamente uma, o node-forge mudou e a troca precisa ser revista.
-  const alvo = 'new Function("return this")()';
-  const original = ler('../../node_modules/node-forge/dist/forge.min.js');
-  assert.equal(original.split(alvo).length - 1, 1, 'o node-forge deve ter exatamente uma ocorrência de ' + alvo);
-  const esperado = original.replace(alvo, 'globalThis');
+  // Idêntico, byte a byte: a política da Mozilla proíbe alterar bibliotecas
+  // de terceiros, e o revisor reconhece a original pelo hash. O alerta do
+  // validador sobre o construtor Function nessa linha é esperado e aceito.
   const sha = (t) => createHash('sha256').update(t).digest('hex');
-  assert.equal(sha(ler('../../ext/vendor/forge.min.js')), sha(esperado));
+  assert.equal(
+    sha(ler('../../ext/vendor/forge.min.js')),
+    sha(ler('../../node_modules/node-forge/dist/forge.min.js')),
+  );
 });
