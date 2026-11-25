@@ -38,9 +38,9 @@ lugar do programa assinador que o PJe manda instalar.
   o Jamegão deixa o pedido seguir para o programa instalado, se houver, e o
   ícone mostra a operação e o site. Conte numa
   [issue](https://github.com/pedrohqb/jamegao/issues).
-- **Tribunais testados.** Login e assinatura de documentos foram testados no
-  PJe do TJDFT, no Firefox, já nesta versão, e no PJe do TJMA (1º grau), no
-  Brave, numa versão de teste anterior. O login também foi testado nos PJe
+- **Tribunais testados.** Login e assinatura de documentos foram testados
+  nesta versão no PJe do TJMA (1º grau), no Brave, e no PJe do TJDFT, no
+  Firefox. O login também foi testado nos PJe
   do TRT da 1ª Região, do TRT da 2ª Região e do TRF da 3ª Região. Os demais
   tribunais da lista do PJe
   mantida pelo CNJ devem funcionar, mas ainda não foram testados, nem o PJe
@@ -60,6 +60,5 @@ PJe: entrar e assinar documentos com certificado A1, sem o programa
 assinador. Vem desligado: marque "Usar também no PJe" no ícone e aceite a
 permissão para os sites *.jus.br. Certificados importados antes desta versão
 precisam ser importados de novo para o PJe. Quem tem o programa do PJe pode
-continuar com ele ("Usar o programa instalado"). Testado no TJDFT, no
-Firefox, e no TJMA, numa versão de teste anterior; login também no TRT1, no
-TRT2 e no TRF3. No e-SAJ, nada muda.
+continuar com ele ("Usar o programa instalado"). Testado no TJMA, no
+Brave, e no TJDFT, no Firefox; login também no TRT1, no TRT2 e no TRF3. No e-SAJ, nada muda.
