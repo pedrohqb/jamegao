@@ -144,7 +144,7 @@ Por que uma permissão tão ampla: o PJe está em dezenas de endereços, todos e
 
 #### 2. Importar o certificado de novo
 
-O PJe exige a cadeia completa do certificado (o seu e os das autoridades certificadoras), que o Jamegão só passou a guardar na versão 0.3.0. Os certificados importados antes aparecem no ícone com o aviso **"Importe de novo para usar no PJe."** Importe o mesmo arquivo PFX de novo (ícone → **Importar certificado**): ele substitui o registro antigo, e no e-SAJ nada muda.
+O PJe exige a cadeia completa do certificado (o seu e os das autoridades certificadoras), que o Jamegão só passou a guardar na versão 0.3.0. Os certificados importados antes aparecem no ícone com o aviso **"Importe de novo para usar no PJe."** Importe o mesmo arquivo PFX de novo (ícone → **Importar certificado**): ele substitui o registro antigo, e no e-SAJ nada muda. Importe antes de usar o PJe: com um certificado importado antes da 0.3.0, a janela do Jamegão no PJe só mostra o aviso de reimportação e o botão **Fechar**, sem **Usar o programa instalado**.
 
 Se o seu PFX não trouxer as autoridades certificadoras, o ícone avisa: o PJe pode recusá-lo. Nesse caso, obtenha com a sua autoridade certificadora o arquivo com a cadeia completa.
 
@@ -166,7 +166,7 @@ O programa pode continuar instalado. Na janela do Jamegão no PJe, há dois cami
 | Botão | O que faz |
 |---|---|
 | **Usar o programa instalado** | só este pedido vai para o programa instalado, e o Jamegão não assina. Serve a quem usa o A1 no Jamegão e um token ou certificado em nuvem pelo programa |
-| **Bloquear este site** | aquele site passa ao programa instalado de vez; para desfazer, use **Desbloquear** no ícone |
+| **Bloquear este site** | recusa este pedido (com a pausa de 15 segundos) e, a partir do próximo pedido, aquele site passa ao programa instalado de vez; para desfazer, use **Desbloquear** no ícone |
 
 O mesmo acontece quando não há certificado importado no Jamegão: o pedido segue para o programa. O Jamegão não verifica se o programa está rodando; se não estiver, o PJe mostra o próprio aviso de que o assinador não está disponível.
 
@@ -176,7 +176,7 @@ O Jamegão faz o login e a assinatura de documentos, as duas operações vistas 
 
 #### Onde foi testado
 
-Login e assinatura de documentos foram testados no PJe do TJMA (1º grau), no Brave, com certificado A1 real. Os demais tribunais da lista do PJe mantida pelo CNJ devem funcionar do mesmo jeito, mas ainda não foram testados. Se você usar um deles, conte como foi numa [issue](https://github.com/pedrohqb/jamegao/issues).
+Login e assinatura de documentos foram testados no PJe do TJMA (1º grau), no Brave, com certificado A1 real, numa versão de teste anterior à 0.3.0. A 0.3.0 ainda não foi testada num PJe real, nem no Firefox ou no Android. Os demais tribunais da lista do PJe mantida pelo CNJ devem funcionar do mesmo jeito, mas ainda não foram testados. Se você usar um deles, conte como foi numa [issue](https://github.com/pedrohqb/jamegao/issues).
 
 ---
 
@@ -250,13 +250,13 @@ Jamegão is a Firefox and Chromium (Chrome, Edge, Brave) extension that lets Bra
 
 It is an independent project, not affiliated with the vendors of e-SAJ, of the official extensions or of the PJe signer program, nor with the CNJ or the courts. A3 tokens and smart cards are not supported; for those, see the sister project [Tessera](https://github.com/pedrohqb/tessera).
 
-**Works on** Linux, Windows, macOS, ChromeOS, Android (Firefox 142+) and even OpenBSD (e-SAJ login tested), with Firefox 140+ or Chromium-based browsers 121+, on the e-SAJ portals of TJSP, TJAL, TJMS, TJAC, TJCE and TJBA (tested so far on TJSP and TJAL) and, since 0.3.0, on PJe (tested so far on TJMA, first instance).
+**Works on** Linux, Windows, macOS, ChromeOS, Android (Firefox 142+) and even OpenBSD (e-SAJ login tested), with Firefox 140+ or Chromium-based browsers 121+, on the e-SAJ portals of TJSP, TJAL, TJMS, TJAC, TJCE and TJBA (tested so far on TJSP and TJAL) and, since 0.3.0, on PJe (login and document signing tested on TJMA, first instance, with Brave, on a test build earlier than 0.3.0).
 
 **Install.** Firefox: install from [Firefox Add-ons](https://addons.mozilla.org/firefox/addon/jamegao/); then check in `about:addons` → Jamegão → Permissions that site access is on. Chromium browsers (Chrome, Edge, Brave): install from the [Chrome Web Store](https://chromewebstore.google.com/detail/pkmhmpmgojhgogcklacckpideochcggj). Jamegão is for people who do not use the official signing extensions: if one is active on the page, Jamegão turns itself off there, so disable them in that browser profile.
 
 **Use.** Import your PFX once and set a vault password (8+ characters); the private key is stored encrypted in the browser profile. On e-SAJ, choose certificate login as usual. The first time on each court site, Jamegão asks whether the site may see your certificates; every signature, single or batch, needs your confirmation in Jamegão's own window, which shows how many documents will be signed. The vault locks after 30 minutes idle and when the browser closes.
 
-**PJe.** Off by default. Turn it on with **Usar também no PJe** in the toolbar popup (or at the end of the import); the browser asks once for access to `https://*.jus.br/*`; reload any open PJe pages. Certificates imported before 0.3.0 must be imported again, because PJe needs the full certificate chain. Login and document signing are supported; any other operation PJe asks for is passed on to the installed signer program, if there is one, and listed in the popup so you can report it. In the PJe confirmation window, **Usar o programa instalado** sends that one request to the installed program, and **Bloquear este site** hands that site over to it.
+**PJe.** Off by default. Turn it on with **Usar também no PJe** in the toolbar popup (or at the end of the import); the browser asks once for access to `https://*.jus.br/*`; reload any open PJe pages. Certificates imported before 0.3.0 must be imported again, because PJe needs the full certificate chain. Login and document signing are supported; any other operation PJe asks for is passed on to the installed signer program, if there is one, and listed in the popup so you can report it. In the PJe confirmation window, **Usar o programa instalado** sends that one request to the installed program, and **Bloquear este site** refuses the current request and hands that site over to it from the next request on.
 
 **Privacy.** No server, no network connections, no data collection. Only the e-SAJ or PJe site you authorized receives, on request, your certificate's public data and the signatures you confirmed; on PJe, the page itself sends them to its own server. See the [privacy policy](PRIVACIDADE.md) (in Portuguese).
 

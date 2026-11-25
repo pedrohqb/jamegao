@@ -32,12 +32,12 @@ Como funciona:
 No PJe:
 - O PJe vem desligado. Para usá-lo, marque "Usar também no PJe" no ícone do Jamegão (ou no fim da importação) e aceite a permissão para os sites do Judiciário (*.jus.br), pedida uma única vez.
 - Certificados importados antes da versão 0.3.0 precisam ser importados de novo, porque o PJe exige a cadeia completa do certificado.
-- Quem tem o programa assinador do PJe instalado pode continuar com ele: a janela do Jamegão oferece "Usar o programa instalado" a cada pedido, e "Bloquear este site" devolve um tribunal ao programa.
-- Faz login e assinatura de documentos. Testado no PJe do TJMA; os demais tribunais ainda não foram testados.
+- Quem tem o programa assinador do PJe instalado pode continuar com ele: a janela do Jamegão oferece "Usar o programa instalado" a cada pedido, e "Bloquear este site" passa aquele site ao programa a partir do próximo pedido.
+- Faz login e assinatura de documentos. Testados no PJe do TJMA (1º grau), no Brave, numa versão de teste anterior à 0.3.0; os demais tribunais, o Firefox e o Android ainda não foram testados no PJe.
 
 Pontos importantes:
 - Serve apenas para certificado A1 (arquivo). Não atende token nem cartão.
-- Funciona em Linux, Windows, macOS e outros sistemas com Firefox, inclusive no Android.
+- Funciona em Linux, Windows, macOS e outros sistemas com Firefox. No Android, o e-SAJ foi testado; o PJe ainda não.
 - O Jamegão é para quem não usa as extensões oficiais de assinatura do e-SAJ. Se uma delas estiver ativa, o Jamegão se desliga na página e quem responde é ela.
 - As chaves ficam cifradas com a senha do cofre, no perfil do seu navegador.
 - A extensão não tem servidor, não faz conexões de rede e não envia nada ao desenvolvedor nem a terceiros. Só o site do e-SAJ ou do PJe que você autorizou recebe, quando pede, os dados públicos do certificado e as assinaturas que você confirmou.
