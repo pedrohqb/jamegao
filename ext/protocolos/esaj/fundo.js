@@ -74,7 +74,7 @@ export function createEsaj({ matches }) {
     async preauthorizeSignatures(request, { origin, certs, assinar }) {
       const entry = await findCert(certs, request.certificateThumbprint);
       // `?? NaN`: ausente não pode cair no padrão (1) de `assinar`.
-    const r = await assinar(
+      const r = await assinar(
         { origin, thumbprint: entry.thumbprint, quantidade: request.signatureCount ?? NaN, novoLote: true },
         async () => { throw new PkiError('Falha ao decifrar a chave.', CODES.internal); },
       );

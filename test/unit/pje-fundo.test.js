@@ -212,13 +212,13 @@ test('lote novo: documentos com novo abre janela mesmo com crédito; login não'
 test('sem cadeia: aviso antes de site, cofre e crédito', async () => {
   await setup({ semCadeia: true, allowed: false, unlocked: false });
   assert.deepEqual(await login(), {
-    needs: { aviso: 'semCadeia', sign: { motivo: 'login', sistema: 'PJe', count: 1, thumbprint: A.thumbprint } },
+    needs: { aviso: 'semCadeia', programa: true, sign: { motivo: 'login', sistema: 'PJe', count: 1, thumbprint: A.thumbprint } },
   });
   await setup({ semCadeia: true });
   await credits.grant(O, A.thumbprint, 2, 'documentos');
   const r = await docs([hex('md5', 'a'), hex('md5', 'b')]);
   assert.deepEqual(r.needs, {
-    aviso: 'semCadeia', sign: { motivo: 'documentos', sistema: 'PJe', count: 2, thumbprint: A.thumbprint },
+    aviso: 'semCadeia', programa: true, sign: { motivo: 'documentos', sistema: 'PJe', count: 2, thumbprint: A.thumbprint },
   });
   assert.equal(await credits.has(O, A.thumbprint, 'documentos'), true, 'nada foi gasto');
 });
@@ -307,7 +307,7 @@ test('preferência gravada num certificado sem cadeia é ignorada', async () => 
 test('vários certificados, nenhum com cadeia: aviso; estado continua atendendo', async () => {
   await setup({ lista: [A, B], semCadeia: true });
   assert.deepEqual(await login(), {
-    needs: { aviso: 'semCadeia', sign: { motivo: 'login', sistema: 'PJe', count: 1, thumbprint: A.thumbprint } },
+    needs: { aviso: 'semCadeia', programa: true, sign: { motivo: 'login', sistema: 'PJe', count: 1, thumbprint: A.thumbprint } },
   });
   assert.deepEqual(await pedir('estado', {}), { success: true, response: { atender: true } });
 });

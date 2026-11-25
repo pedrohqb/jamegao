@@ -407,6 +407,15 @@ test('recusa do usuário não vai ao console; outras falhas vão, com [Jamegão]
   assert.deepEqual(await resultado, { ping: 'ok', res: 'erro' });
   await new Promise((r) => setTimeout(r, 300));
   assert.deepEqual(consoleDaPagina.filter((t) => t.includes('[Jamegão]')), []);
+  // Pedido logo depois da recusa: a pausa de 15 s também é user_cancelled,
+  // mas não é recusa na janela, e vai ao console.
+  assert.deepEqual(await logar(page), { ping: 'ok', res: 'erro' });
+  await a.semJanela(300);
+  for (const fim = Date.now() + 3000; Date.now() < fim && !consoleDaPagina.length;) await new Promise((ok) => setTimeout(ok, 50));
+  assert.ok(consoleDaPagina.some((t) => t.includes('[Jamegão]') && t.includes('Pedido recusado há pouco')),
+    'a pausa deveria ir ao console: ' + consoleDaPagina.join(' | '));
+  assert.ok(!consoleDaPagina.some((t) => t.includes(MENSAGEM)));
+  consoleDaPagina.length = 0;
   // Controle: uma falha que não é do usuário aparece.
   const r = await page.evaluate(() => window.chamar(window.requisicao('sso.autenticador', { mensagem: 'x', token: 't' })));
   assert.equal(r, 'erro');
@@ -485,7 +494,7 @@ test('dois certificados: a janela mostra o seletor, marca o último usado e assi
   assert.deepEqual(localhost, []);
 });
 
-// Janela que não pede decisão: só o aviso de certificado sem cadeia.
+// Janela do aviso de certificado sem cadeia.
 async function janelaDeAviso() {
   for (const fim = Date.now() + 15000; Date.now() < fim;) {
     for (const p of await a.confirmPages()) {
@@ -496,7 +505,7 @@ async function janelaDeAviso() {
   throw new Error('janela do aviso não apareceu');
 }
 
-test('certificados sem cadeia (importados antes do PJe): aviso com "Fechar" e nada é assinado', async () => {
+test('certificados sem cadeia (importados antes do PJe): aviso com "Fechar" e o programa instalado; nada é assinado', async () => {
   // Os registros perdem a cadeia, como os importados antes desta versão.
   const ext = await h.browser.newPage();
   await ext.goto(h.extUrl('pages/import.html'));
@@ -519,8 +528,9 @@ test('certificados sem cadeia (importados antes do PJe): aviso com "Fechar" e na
     const j = await janelaDeAviso();
     assert.equal(await j.$eval('#cadeia', (e) => e.textContent),
       'Este certificado foi importado antes do suporte ao PJe. Importe o certificado de novo para usar no PJe.');
-    assert.deepEqual(await j.$eval('body', (b) => [...b.querySelectorAll('button')].filter((x) => !x.hidden).map((x) => x.textContent)), ['Fechar']);
-    assert.equal(await j.$eval('#origem', (e) => e.hidden), true);
+    assert.deepEqual(await j.$eval('body', (b) => [...b.querySelectorAll('button')].filter((x) => !x.hidden).map((x) => x.textContent)),
+      ['Usar o programa instalado', 'Fechar']);
+    assert.equal(await j.$eval('#origem', (e) => [e.hidden, e.textContent].join('|')), `false|O site ${SSO} está pedindo autorização.`);
     assert.equal(await j.$eval('#bloco-senha', (e) => e.hidden), true);
     await a.responder(j, '#fechar');
     assert.deepEqual(await resultado, { ping: 'ok', res: 'erro' }, `vez ${vez}`);
@@ -528,6 +538,17 @@ test('certificados sem cadeia (importados antes do PJe): aviso com "Fechar" e na
   assert.deepEqual(localhost, []);
   assert.equal(envios.length, 0);
   assert.deepEqual(consoleDaPagina.filter((t) => t.includes('[Jamegão]')), []);
+  // "Usar o programa instalado" no aviso: a chamada segue para o localhost,
+  // sem pausa (o pedido seguinte abre o aviso de novo).
+  const resultado = logar(page);
+  await a.responder(await janelaDeAviso(), '#programa');
+  assert.deepEqual(await resultado, { ping: 'ok', res: 'indisponivel' });
+  assert.equal(localhost.length, 1);
+  assert.match(localhost[0], /\/pjeOffice\/requisicao\//);
+  const deNovo = logar(page);
+  await a.responder(await janelaDeAviso(), '#fechar');
+  assert.deepEqual(await deNovo, { ping: 'ok', res: 'erro' });
+  assert.equal(envios.length, 0);
 });
 
 // Por último: apaga o certificado.

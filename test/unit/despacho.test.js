@@ -1,5 +1,6 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
+import fs from 'node:fs';
 import { createDespacho } from '../../ext/lib/despacho.js';
 import { createEsaj } from '../../ext/protocolos/esaj/fundo.js';
 import { PkiError, CODES } from '../../ext/lib/protocol.js';
@@ -92,4 +93,20 @@ test('e-SAJ: aceita só os hosts da lista (e localhost se listado)', () => {
   assert.equal(e.aceitaOrigem('https://esaj.tjsp.jus.br.evil.com'), false);
   assert.equal(e.aceitaOrigem(null), false);
   assert.equal(createEsaj({ matches: ['https://esaj.tjsp.jus.br/*'] }).aceitaOrigem('http://127.0.0.1'), false);
+});
+
+// Cada padrão do script de conteúdo do e-SAJ no manifesto de verdade tem de
+// virar um host aceito; um padrão com curinga (https://*.tjxx.jus.br/*) não
+// vira host nenhum, e o e-SAJ daquele tribunal pararia sem aviso.
+test('e-SAJ: todo padrão do manifesto vira um host aceito', () => {
+  const manifesto = JSON.parse(fs.readFileSync(new URL('../../ext/manifest.json', import.meta.url), 'utf8'));
+  const matches = manifesto.content_scripts[0].matches;
+  assert.ok(matches.length > 0);
+  for (const m of matches) {
+    const origem = new URL(m.replace(/\*$/, '')).origin;
+    assert.equal(createEsaj({ matches: [m] }).aceitaOrigem(origem), true, m);
+  }
+  // O teste pega o curinga.
+  const curinga = 'https://*.tjsp.jus.br/*';
+  assert.equal(createEsaj({ matches: [curinga] }).aceitaOrigem(new URL(curinga.replace(/\*$/, '')).origin), false);
 });

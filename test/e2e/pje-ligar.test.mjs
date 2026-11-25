@@ -214,7 +214,8 @@ test('popup: marcas de certificado para o PJe e tarefas recusadas', async () => 
   const popup = await abrirPopup();
   const itens = await popup.$$eval('#certs li', (lis) => lis.map((li) => li.textContent));
   const de = (nome) => itens.find((t) => t.startsWith(nome + ' ('));
-  const SEM_AUTORIDADES = 'O arquivo deste certificado não trouxe as autoridades certificadoras; o PJe pode recusá-lo.';
+  const SEM_AUTORIDADES = 'O arquivo deste certificado não trouxe as autoridades certificadoras; o PJe pode recusá-lo. '
+    + 'Peça à certificadora o arquivo PFX com a cadeia completa.';
   const REIMPORTE = 'Importe de novo para usar no PJe.';
   assert.ok(de('VENCIDO').includes(REIMPORTE), de('VENCIDO'));
   assert.ok(!de('VENCIDO').includes(SEM_AUTORIDADES));

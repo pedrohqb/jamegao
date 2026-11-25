@@ -28,6 +28,9 @@ function mundo(respostas) {
         pedidos.push({ protocolo, comando, pedido, opcoes });
         return respostas.shift();
       },
+      // A ponte de verdade reconhece a recusa pelo objeto; aqui, pela marca
+      // de teste.
+      recusou: (r) => !!r && r.recusaDeTeste === true,
     },
   });
   vm.runInContext(SRC, ctx);
@@ -120,4 +123,14 @@ test('o pedido recebido é confirmado na hora, antes de qualquer resposta', () =
   // Pedido ilegível não é confirmado.
   m.document.dispatchEvent(new CustomEvent('jamegao-pje-pedido', { detail: '{' }));
   assert.deepEqual(recebidos, ['r1']);
+});
+
+test('recusa do usuário chega à página marcada (recusa: true); as outras falhas, sem marca', async () => {
+  const exception = { message: 'Operação cancelada.', complete: 'Operação cancelada.', origin: 'extension', code: 'user_cancelled' };
+  const m = mundo([{ success: false, exception, recusaDeTeste: true }, { success: false, exception }]);
+  const recusa = await m.pedir({ id: 'r', acao: 'assinar', pedido: { tipo: 'login', mensagem: 'oi' } });
+  assert.equal(recusa.recusa, true);
+  assert.deepEqual(recusa.exception, exception);
+  const outra = await m.pedir({ id: 'o', acao: 'assinar', pedido: { tipo: 'login', mensagem: 'oi' } });
+  assert.equal(outra.recusa, undefined);
 });

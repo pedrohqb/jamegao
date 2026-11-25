@@ -4,6 +4,7 @@ import { createHash, createVerify, generateKeyPairSync } from 'node:crypto';
 import { md5 } from '../../ext/lib/md5.js';
 import { signMd5Hash, signHash } from '../../ext/lib/rsa.js';
 import { pkiPath } from '../../ext/lib/pkipath.js';
+import { CODES, PkiError } from '../../ext/lib/protocol.js';
 
 test('md5 confere com o Node em vários tamanhos', () => {
   for (const n of [0, 1, 55, 56, 63, 64, 65, 119, 120, 1000, 100000]) {
@@ -20,12 +21,28 @@ test('signMd5Hash produz MD5withRSA verificável', async () => {
   assert.ok(createVerify('RSA-MD5').update(msg).verify(publicKey, Buffer.from(sig)));
 });
 
+// Chave de verdade: a recusa tem de vir do resumo, não de uma chave inválida.
+const chaveValida = () => {
+  const { privateKey } = generateKeyPairSync('rsa', { modulusLength: 2048 });
+  return new Uint8Array(privateKey.export({ type: 'pkcs8', format: 'der' }));
+};
+
 test('signMd5Hash rejeita resumo de tamanho errado', async () => {
-  await assert.rejects(signMd5Hash(new Uint8Array(1), new Uint8Array(20)));
+  await assert.rejects(signMd5Hash(chaveValida(), new Uint8Array(20)), (e) => {
+    assert.ok(e instanceof PkiError);
+    assert.equal(e.code, CODES.badRequest);
+    assert.match(e.message, /Resumo com tamanho errado para MD5: 20 bytes/);
+    return true;
+  });
 });
 
 test('o e-SAJ continua sem poder pedir MD5', async () => {
-  await assert.rejects(signHash(new Uint8Array(1), new Uint8Array(16), 'MD5'));
+  await assert.rejects(signHash(chaveValida(), new Uint8Array(16), 'MD5'), (e) => {
+    assert.ok(e instanceof PkiError);
+    assert.equal(e.code, 'bad_request');
+    assert.match(e.message, /Algoritmo de resumo não suportado: MD5/);
+    return true;
+  });
 });
 
 test('pkiPath é SEQUENCE OF Certificate na ordem do Java (raiz primeiro)', () => {

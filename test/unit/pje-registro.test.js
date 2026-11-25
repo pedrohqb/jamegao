@@ -371,6 +371,9 @@ const VELHOS = {
   'sem excludeMatches': (s) => { const { excludeMatches, ...resto } = s; return resto; },
   world: (s) => ({ ...s, world: s.world === 'MAIN' ? 'ISOLATED' : 'MAIN' }),
   allFrames: (s) => ({ ...s, allFrames: false }),
+  runAt: (s) => ({ ...s, runAt: 'document_idle' }),
+  'sem runAt': (s) => { const { runAt, ...resto } = s; return resto; },
+  persistAcrossSessions: (s) => ({ ...s, persistAcrossSessions: false }),
 };
 
 for (const [campo, envelhecer] of Object.entries(VELHOS)) {

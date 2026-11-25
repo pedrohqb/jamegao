@@ -66,6 +66,9 @@
     const request = filtrar(acao, pedido);
     const opcoes = acao === 'assinar' && request.tipo === 'documentos' ? { repetir } : {};
     const r = await globalThis.jamegaoPonte.pedir('pje', acao, request, opcoes);
+    // A recusa do usuário na janela vai marcada: a página não a registra no
+    // console, mas registra as outras falhas.
+    if (globalThis.jamegaoPonte.recusou(r)) return { ...r, recusa: true };
     if (acao !== 'assinar' || !r || r.success !== true) return r;
     try {
       const { assinaturas, cadeia } = r.response;

@@ -130,12 +130,15 @@
   // Resultado de uma tarefa: true (1×1), false (2×1) ou ORIGINAL (a chamada
   // segue para o localhost).
   const ORIGINAL = Symbol('original');
-  // Cancelamento pelo usuário não é erro: não vai ao console.
+  // A recusa do usuário na janela de confirmação (marcada `recusa` pelo
+  // mundo isolado) não é erro: não vai ao console. As outras falhas vão,
+  // inclusive as user_cancelled que não são recusa (pausa depois de uma
+  // recusa, outra confirmação pendente, prazo de 120 s, site bloqueado).
   const desfecho = (r, depois) => {
     if (r === SEM_PONTE || (r && r.programa === true)) return ORIGINAL;
     if (!r || r.success !== true) {
       const e = r && r.exception;
-      if (!e || e.code !== 'user_cancelled') console.warn(TAG, 'Assinatura não feita:', (e && e.message) || 'falha');
+      if (!(r && r.recusa === true)) console.warn(TAG, 'Assinatura não feita:', (e && e.message) || 'falha');
       return false;
     }
     return depois(r.response);

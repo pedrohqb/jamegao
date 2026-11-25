@@ -40,13 +40,16 @@ const scripts = (api) => {
 
 // O que importa de um registro, na forma em que o navegador o devolve
 // (caminhos sem a barra inicial, mundo isolado explícito, listas de sites em
-// qualquer ordem).
+// qualquer ordem). Campo ausente vale o padrão da API: runAt
+// "document_idle", persistAcrossSessions verdadeiro.
 const essencial = (s) => JSON.stringify({
   js: (s.js ?? []).map((j) => String(j).replace(/^\//, '')),
   matches: [...(s.matches ?? [])].sort(),
   excludeMatches: [...(s.excludeMatches ?? [])].sort(),
   world: s.world ?? 'ISOLATED',
   allFrames: s.allFrames === true,
+  runAt: s.runAt ?? 'document_idle',
+  persistAcrossSessions: s.persistAcrossSessions !== false,
 });
 
 // Os dois scripts registrados como esta versão os registraria. Um registro

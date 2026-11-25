@@ -162,10 +162,26 @@ test('login com outra quantidade de assinaturas: 2×1, nada enviado', async () =
 
 const falha = (code, message) => () => ({ success: false, exception: { message, complete: message, origin: 'extension', code } });
 
-test('cancelamento pelo usuário não vai ao console; outra falha vai, com [Jamegão]', async () => {
-  const cancelou = pagina({ mundoIsolado: { assinar: falha('user_cancelled', 'Operação cancelada.') } });
+test('recusa do usuário na janela não vai ao console; outra falha vai, com [Jamegão]', async () => {
+  const recusa = () => ({ ...falha('user_cancelled', 'Operação cancelada.')(), recusa: true });
+  const cancelou = pagina({ mundoIsolado: { assinar: recusa } });
   assert.equal(await cancelou.chamar(requisicao('sso.autenticador', LOGIN)), 'erro');
   assert.deepEqual(cancelou.avisos, []);
+
+  // user_cancelled sem a marca não é recusa do usuário: pausa, outra
+  // confirmação pendente, prazo de 120 s, site bloqueado...
+  for (const msg of [
+    'Há uma confirmação pendente nesta aba.',
+    'Pedido recusado há pouco. Tente de novo em alguns segundos.',
+    'Operação cancelada: a confirmação não foi respondida em 120 s.',
+    'Este site está bloqueado no Jamegão.',
+  ]) {
+    const p = pagina({ mundoIsolado: { assinar: falha('user_cancelled', msg) } });
+    assert.equal(await p.chamar(requisicao('cnj.assinadorHash', LOTE)), 'erro');
+    assert.equal(p.avisos.length, 1, msg);
+    assert.ok(p.avisos[0].startsWith('[Jamegão] ') && p.avisos[0].includes(msg), p.avisos[0]);
+    assert.equal(p.envios.length, 0);
+  }
 
   const falhou = pagina({ mundoIsolado: { assinar: falha('bad_request', 'Algoritmo não suportado: X') } });
   assert.equal(await falhou.chamar(requisicao('sso.autenticador', LOGIN)), 'erro');

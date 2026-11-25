@@ -24,6 +24,18 @@
   });
   const valid = (r) => !!r && (typeof r.success === 'boolean' || r.programa === true);
 
+  // Recusa do usuário na janela: o fundo marca o desfecho (`recusa`, ver
+  // lib/prompts.js). A marca não vai à página, que recebe o formato de
+  // sempre; quem precisa distinguir a recusa pergunta a recusou(r).
+  const recusas = new WeakSet();
+  const desmarcar = (outcome) => {
+    if (!outcome || typeof outcome !== 'object' || outcome.recusa !== true) return outcome;
+    const { recusa, ...resposta } = outcome;
+    recusas.add(resposta);
+    return resposta;
+  };
+  const recusou = (r) => !!r && typeof r === 'object' && recusas.has(r);
+
   // Respostas de confirmação: id -> função que recebe o desfecho. Se o
   // desfecho chegar antes de alguém esperar por ele, fica guardado em "early".
   const waiting = new Map();
@@ -82,7 +94,7 @@
     try {
       result = await ask(protocolo, command, request);
       if (result.pending) {
-        let outcome = await waitPrompt(result.promptId);
+        let outcome = desmarcar(await waitPrompt(result.promptId));
         if (outcome === 'programa') {
           outcome = { programa: true };
         } else if (outcome === 'retry') {
@@ -113,5 +125,5 @@
     return result;
   };
 
-  globalThis.jamegaoPonte = { pedir, abandonarPendentes };
+  globalThis.jamegaoPonte = { pedir, abandonarPendentes, recusou };
 })();

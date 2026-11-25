@@ -45,7 +45,10 @@ const checkbox = (cls, label, checked, onChange) => {
 // existe (titular primeiro).
 const marcaPje = (c) => {
   if (!Array.isArray(c.chainB64) || c.chainB64.length === 0) return 'Importe de novo para usar no PJe.';
-  if (c.chainB64.length === 1) return 'O arquivo deste certificado não trouxe as autoridades certificadoras; o PJe pode recusá-lo.';
+  if (c.chainB64.length === 1) {
+    return 'O arquivo deste certificado não trouxe as autoridades certificadoras; o PJe pode recusá-lo. '
+      + 'Peça à certificadora o arquivo PFX com a cadeia completa.';
+  }
   return null;
 };
 

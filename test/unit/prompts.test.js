@@ -114,10 +114,13 @@ test('recusa cancela e não grava bloqueio do site', async () => {
   assert.deepEqual(await sites.list(), []);
   assert.equal((await sites.get(O)).allowed, undefined);
   assert.equal(await credits.has(O, T), false);
-  const out = sent[0].msg.outcome;
-  assert.equal(out.success, false);
-  assert.equal(out.exception.code, 'user_cancelled');
-  assert.match(out.exception.message, /cancelad/);
+  // A recusa leva a marca `recusa`, que a ponte tira antes de responder à
+  // página (o e-SAJ recebe o código e a mensagem de sempre).
+  assert.deepEqual(sent[0].msg.outcome, {
+    success: false,
+    exception: { message: 'Operação cancelada.', complete: 'Operação cancelada.', origin: 'extension', code: 'user_cancelled' },
+    recusa: true,
+  });
 });
 
 test('segunda abertura na mesma aba devolve busy; outra aba abre', async () => {
@@ -436,6 +439,19 @@ test('aviso de cadeia: só recusa, sem pausa, nada concedido', async () => {
   await prompts.answer(c.id, { block: true });
   assert.equal((await sites.get(O)).allowed, undefined, 'aviso não bloqueia');
   assert.ok((await prompts.open(needs(), ctx())).id);
+});
+
+test('aviso de cadeia com "Usar o programa instalado": desfecho programa, sem pausa e sem crédito', async () => {
+  await setup({ unlocked: true });
+  const needs = () => ({ aviso: 'semCadeia', programa: true, sign: pjeSign() });
+  const a = await prompts.open(needs(), ctx({ command: 'assinar' }));
+  await prompts.setWindow(a.id, 5);
+  assert.deepEqual(await prompts.answer(a.id, { programa: true, allow: true }), { done: true });
+  assert.deepEqual(sent, [{ tabId: 7, frameId: 0, msg: { type: 'prompt-resolved', id: a.id, outcome: 'programa' } }]);
+  assert.deepEqual(closed, [5]);
+  assert.equal(await credits.has(O, T, 'login'), false);
+  assert.deepEqual(await sites.list(), []);
+  assert.ok((await prompts.open(needs(), ctx())).id, 'sem pausa');
 });
 
 test('o aceite concede o crédito com o motivo do pedido; o e-SAJ, sem motivo', async () => {

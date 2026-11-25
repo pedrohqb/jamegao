@@ -202,3 +202,53 @@ test('sem repetir, o retry repete o mesmo pedido', async () => {
   const pedidos = m.enviados.filter((e) => e.type === 'jamegao-pedido').map((e) => e.request);
   assert.deepEqual(pedidos, [{ novo: true }, { novo: true }]);
 });
+
+// Recusa na janela de confirmação: prompts.js marca o desfecho (`recusa`). A
+// ponte tira a marca, para a página receber o formato de sempre, e responde
+// por recusou(r). As outras falhas user_cancelled não são recusa.
+const RECUSA = {
+  success: false,
+  exception: { message: 'Operação cancelada.', complete: 'Operação cancelada.', origin: 'extension', code: 'user_cancelled' },
+};
+
+test('recusa na janela: resposta sem a marca, e recusou(r) é verdadeiro', async () => {
+  const m = mundo();
+  m.carregar();
+  m.respostas.push({ pending: true, promptId: 'p1' });
+  const p = m.ponte().pedir('esaj', 'x', null);
+  await tick();
+  m.resolver('p1', { ...RECUSA, recusa: true });
+  const r = await p;
+  assert.deepEqual(plain(r), RECUSA);
+  assert.equal(Object.prototype.hasOwnProperty.call(r, 'recusa'), false);
+  assert.equal(m.ponte().recusou(r), true);
+});
+
+test('as outras falhas user_cancelled não são recusa', async () => {
+  const m = mundo();
+  m.carregar();
+  // Do fundo, sem janela (confirmação pendente, pausa, site bloqueado...).
+  const doFundo = { success: false, exception: { ...RECUSA.exception, message: 'Há uma confirmação pendente nesta aba.' } };
+  m.respostas.push(doFundo);
+  const r1 = await m.ponte().pedir('pje', 'x', null);
+  assert.deepEqual(plain(r1), doFundo);
+  assert.equal(m.ponte().recusou(r1), false);
+  // Prazo de 120 s vencido.
+  m.respostas.push({ pending: true, promptId: 'p2' });
+  const p2 = m.ponte().pedir('pje', 'x', null);
+  await tick();
+  m.avancar(120000);
+  const r2 = await p2;
+  assert.equal(r2.exception.code, 'user_cancelled');
+  assert.equal(m.ponte().recusou(r2), false);
+  // Repetição que pende de novo.
+  m.respostas.push({ pending: true, promptId: 'p3' }, { pending: true, promptId: 'p4' });
+  const p3 = m.ponte().pedir('pje', 'x', null);
+  await tick();
+  m.resolver('p3', 'retry');
+  const r3 = await p3;
+  assert.equal(r3.exception.code, 'user_cancelled');
+  assert.equal(m.ponte().recusou(r3), false);
+  // Valores quaisquer.
+  for (const v of [undefined, null, 'retry', { programa: true }]) assert.equal(m.ponte().recusou(v), false);
+});

@@ -40,19 +40,24 @@ function mostrarAssinatura(d, subject, validityEnd) {
   $('vencimento').textContent = aviso ? 'Atenção: ' + aviso.texto : '';
 }
 
-// Certificado importado antes do suporte ao PJe: só o aviso e "Fechar".
-function mostrarCadeia() {
-  for (const b of ['origem', 'confirmar', 'recusar', 'bloquear']) $(b).hidden = true;
+// Certificado importado antes do suporte ao sistema (needs.sign.sistema):
+// o aviso, "Fechar" e, se oferecido, "Usar o programa instalado".
+function mostrarCadeia(d) {
+  for (const b of ['confirmar', 'recusar', 'bloquear']) $(b).hidden = true;
+  const sistema = d.needs.sign?.sistema;
   $('cadeia').hidden = false;
-  $('cadeia').textContent = 'Este certificado foi importado antes do suporte ao PJe. Importe o certificado de novo para usar no PJe.';
+  $('cadeia').textContent = sistema
+    ? `Este certificado foi importado antes do suporte ao ${sistema}. Importe o certificado de novo para usar no ${sistema}.`
+    : 'Este certificado foi importado numa versão anterior do Jamegão. Importe o certificado de novo.';
+  if (d.needs.programa) $('programa').hidden = false;
   $('fechar').hidden = false;
 }
 
 async function init() {
   const d = await send({ type: 'prompt-describe' });
   if (!d) return shut();
-  if (d.needs.aviso) return mostrarCadeia();
   $('origem').textContent = `O site ${d.origin} está pedindo autorização.`;
+  if (d.needs.aviso) return mostrarCadeia(d);
   if (d.needs.site) {
     $('site').hidden = false;
     $('site').textContent = `Permitir que ${d.origin} veja e use os certificados importados no Jamegão?`;

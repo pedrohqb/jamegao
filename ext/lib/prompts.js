@@ -15,7 +15,11 @@ export const REFUSAL_PAUSE_MS = 15000;
 
 const exclusive = createExclusive('jamegao-prompts');
 
-const CANCELLED = () => fail(CODES.cancelled, 'Operação cancelada.');
+// Recusa do usuário (recusou, fechou a janela ou o aviso). A marca `recusa`
+// separa esta das outras falhas user_cancelled (pausa, outra confirmação
+// pendente, prazo de 120 s...); a ponte (conteudo/ponte.js) a tira antes de
+// responder à página, que recebe o código e a mensagem de sempre.
+const CANCELLED = () => ({ ...fail(CODES.cancelled, 'Operação cancelada.'), recusa: true });
 
 export function createPrompts({ session, vault, certs, sites, credits, notify, closeWindow, closeTab, now = () => Date.now() }) {
   const readAll = () => session.get('prompts', {});
@@ -116,8 +120,9 @@ export function createPrompts({ session, vault, certs, sites, credits, notify, c
     }),
 
     // block: o usuário pediu "Bloquear este site" (recusa e bloqueia).
-    // programa: "Usar o programa instalado" (só quando needs.programa): a
-    // página deixa a chamada seguir, sem pausa, crédito nem decisão do site.
+    // programa: "Usar o programa instalado" (só quando needs.programa, também
+    // no aviso): a página deixa a chamada seguir, sem pausa, crédito nem
+    // decisão do site.
     // thumbprint: o certificado escolhido, quando há needs.escolher.
     answer: (id, { allow, password, block, thumbprint, programa } = {}) => exclusive(async () => {
       const rec = (await readAll())[id];
@@ -126,13 +131,14 @@ export function createPrompts({ session, vault, certs, sites, credits, notify, c
         await refuse(rec, { pause: true });
         return { done: true, expired: true };
       }
-      // O aviso só se fecha: qualquer resposta é recusa (sem pausa).
-      if (rec.needs.aviso) {
-        await refuse(rec);
-        return { done: true };
-      }
       if (programa === true && rec.needs.programa === true) {
         await finish(rec, 'programa');
+        return { done: true };
+      }
+      // Fora o programa instalado, o aviso só se fecha: qualquer outra
+      // resposta é recusa (sem pausa).
+      if (rec.needs.aviso) {
+        await refuse(rec);
         return { done: true };
       }
       if (block === true) {

@@ -96,8 +96,10 @@ export function createPje({ session }) {
       // Só contam os certificados com cadeia: os importados antes do suporte
       // ao PJe não têm, e o PJe não os aceita.
       const comCadeia = lista.filter((e) => Array.isArray(e.chainB64) && e.chainB64.length > 0);
+      // A janela avisa e oferece o programa instalado (o PJeOffice pode ter o
+      // certificado com a cadeia).
       if (!comCadeia.length) {
-        return { needs: { aviso: 'semCadeia', sign: { ...sign, count: itens.length, thumbprint: lista[0].thumbprint } } };
+        return { needs: { aviso: 'semCadeia', programa: true, sign: { ...sign, count: itens.length, thumbprint: lista[0].thumbprint } } };
       }
       // Com mais de um, vale o último escolhido nesta origem; sem ele (ou se
       // foi removido ou não tem cadeia), a janela abre para escolher.
