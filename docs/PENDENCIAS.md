@@ -66,6 +66,8 @@ usuário); só o teste manual prova.
   e-SAJ do TJSP com a 0.3.0: login confirmado no Firefox e no Brave
   (25/11/2026).
   "Usar o programa instalado" confirmado no Firefox e no Brave (25/11/2026).
+  Login no PJe confirmado no TRT1 (Brave), no TRT2 (Firefox) e no TRF3
+  (Brave) (25/11/2026); assinatura de documentos nesses três ainda não.
   O TJMA foi testado só na spike (`pje-spike`, 24/11/2026, Brave). Os textos
   públicos já dizem isso.
 - Enviar às duas lojas: zip `dist/jamegao-0.3.0.zip`, notas da versão e notas
